@@ -6,3 +6,8 @@
 [![codecov](https://codecov.io/gh/wasndas/skymakercam/branch/main/graph/badge.svg)](https://codecov.io/gh/wasndas/skymakercam)
 
 Skymaker camera with sdss-basecam
+
+
+https://sep.readthedocs.io/en/v1.1.x/tutorial.html
+https://docs.python.org/3/library/asyncio-task.html
+
