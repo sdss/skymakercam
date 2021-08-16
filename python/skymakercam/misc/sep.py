@@ -40,8 +40,7 @@ plt.show(block=False)
 
 objects = sep.extract(data_sub, 1.5, err=bkg.globalrms)
 
-fig = plt.gcf()
-ax = fig.gca()
+ax = plt.gcf().gca()
 # plot an ellipse for each object
 for i in range(len(objects)):
     e = Ellipse(xy=(objects['x'][i], objects['y'][i]),
@@ -53,3 +52,12 @@ for i in range(len(objects)):
     ax.add_artist(e)
 
 plt.show(block=False)  
+
+
+from scipy.ndimage.filters import gaussian_filter
+
+data_blur = gaussian_filter(data_sub, sigma=7)
+
+m, s = np.mean(data_blur), np.std(data_blur)
+plt.imshow(data_blur, interpolation='nearest', cmap='gray', vmin=m-s, vmax=m+s, origin='lower')
+plt.show(block=False)
