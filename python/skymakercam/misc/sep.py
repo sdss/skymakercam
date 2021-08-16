@@ -9,7 +9,7 @@ from matplotlib.patches import Ellipse
 
 rcParams['figure.figsize'] = [10., 8.]
 
-hdu = fits.open("20191010/sx.hws.pcam.20191010_00001.fits")
+hdu = fits.open("../20191010/sx.hws.pcam.20191010_00001.fits")
 
 data = hdu[0].data[0]
 

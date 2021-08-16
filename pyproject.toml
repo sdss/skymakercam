@@ -13,9 +13,9 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Natural Language :: English",
     "Operating System :: OS Independent",
-	"Programming Language :: Python :: 3.6",
 	"Programming Language :: Python :: 3.7",
 	"Programming Language :: Python :: 3.8",
+	"Programming Language :: Python :: 3.9",
     "Topic :: Documentation :: Sphinx",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
@@ -32,7 +32,7 @@ generate-setup-file = false
 skymakercam = "skymakercam.__main__:main"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">3.7,<3.10"
 sdss-tree = ">=2.15.2"
 sdss-access = ">=0.2.3"
 sdsstools = ">=0.4.0"
@@ -40,6 +40,11 @@ sdsstools = ">=0.4.0"
 [tool.poetry.dev-dependencies]
 ipython = ">=7.11.0"
 matplotlib = ">=3.1.1"
+astropy = ">=4.0"
+sep = ">=1.2"
+numpy = ">=1.0"
+scipy = ">=1.7"
+PyQt5 = ">=5.14"
 flake8 = ">=3.7.9"
 doc8 = ">=0.8.0"
 pytest = ">=5.2.2"
