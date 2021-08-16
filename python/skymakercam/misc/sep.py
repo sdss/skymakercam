@@ -8,7 +8,14 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.patches import Ellipse
 from  matplotlib import use as plt_use
-plt_use('TkAgg')
+
+def rebin(arr, bin):
+    new_shape=[int(arr.shape[0]/bin), int(arr.shape[1]/bin)]
+    shape = (new_shape[0], arr.shape[0] // new_shape[0],
+             new_shape[1], arr.shape[1] // new_shape[1])
+    return arr.reshape(shape).sum(-1).sum(1)
+
+#plt_use('TkAgg')
 plt_use('Qt5Agg')
 plt.ion()
 plt.show()
@@ -18,14 +25,13 @@ cmap='gist_heat'
 
 hdu = fits.open("../20191010/sx.hws.pcam.20191010_00001.fits")
 
-data = hdu[0].data[0]
+data = rebin(hdu[0].data[0], 4)
 
 m, s = np.mean(data), np.std(data)
 plot_data = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=m-s, vmax=m+s, origin='lower')
 plot_cb = plt.colorbar(cmap=cmap, orientation='vertical')
 plt.title('skymaker cam', fontweight ="bold")
 
-plt.draw()
 
 bkg = sep.Background(data.byteswap().newbyteorder())
 
