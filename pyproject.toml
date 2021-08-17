@@ -36,15 +36,18 @@ python = ">3.7,<3.10"
 sdss-tree = ">=2.15.2"
 sdss-access = ">=0.2.3"
 sdsstools = ">=0.4.0"
-
-[tool.poetry.dev-dependencies]
-ipython = ">=7.11.0"
 matplotlib = ">=3.1.1"
 astropy = ">=4.0"
+astroquery = ">0.4"
+healpy = ">=1.15"
 sep = ">=1.2"
 numpy = ">=1.0"
 scipy = ">=1.7"
 PyQt5 = ">=5.14"
+sdss-clu = ">=1.2.0"
+
+[tool.poetry.dev-dependencies]
+ipython = ">=7.11.0"
 flake8 = ">=3.7.9"
 doc8 = ">=0.8.0"
 pytest = ">=5.2.2"
