@@ -67,7 +67,6 @@ class VirtualCamera(
         self.image_namer.dirname = EXPOSURE_DIR.name
 
     async def _connect_internal(self, **connection_params):
-
         return True
 
     def _status_internal(self):

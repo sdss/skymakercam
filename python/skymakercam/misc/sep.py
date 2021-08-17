@@ -26,6 +26,7 @@ cmap='gist_heat'
 hdu = fits.open("../20191010/sx.hws.pcam.20191010_00001.fits")
 
 data = rebin(hdu[0].data[0], 4)
+#data = hdu[0].data[0].byteswap().newbyteorder()
 
 m, s = np.mean(data), np.std(data)
 plot_data = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=m-s, vmax=m+s, origin='lower')
@@ -33,7 +34,7 @@ plot_cb = plt.colorbar(cmap=cmap, orientation='vertical')
 plt.title('skymaker cam', fontweight ="bold")
 
 
-bkg = sep.Background(data.byteswap().newbyteorder())
+bkg = sep.Background(data)
 
 data_sub = data - bkg
 
@@ -59,16 +60,32 @@ for i in range(len(objects)):
     e.set_edgecolor('yellow')
     ax.add_artist(e)
 
+plt.axis([80,120,60,100])
+
+
+
 while len(ax.artists):
    for a in ax.artists:
        a.remove()
-    
+
+plt.axis([0,data.shape[0],0,data.shape[1]])
+
+
+data_crop = data_sub[80:120,60:100]
+lp, up = np.percentile(data_crop,0.5), np.percentile(data_crop,99.8)
+
+plot_data.set_data(data_crop)
+plot_data.set_clim(lp, up)
+
 from scipy.ndimage.filters import gaussian_filter
 
-data_blur = gaussian_filter(data_sub, sigma=70)
+
+data_blur = gaussian_filter(data_sub, sigma=7)
 
 m, s = np.mean(data_blur), np.std(data_blur)
 plot_data.set_clim(m-s, m+s)
+lp, up = np.percentile(data_blur,0.5), np.percentile(data_blur,99.8)
+plot_data.set_clim(lp, up)
 plot_data.set_data(data_blur)
 
 
