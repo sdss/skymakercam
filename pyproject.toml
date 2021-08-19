@@ -29,7 +29,8 @@ script = "build.py"
 generate-setup-file = false
 
 [tool.poetry.scripts]
-skymakercam = "skymakercam.__main__:main"
+singleframe = "skymakercam.__main__:main"
+plotloop = "utils.plotloop:main"
 
 [tool.poetry.dependencies]
 python = ">3.7,<3.10"
@@ -45,6 +46,7 @@ numpy = ">=1.0"
 scipy = ">=1.7"
 PyQt5 = ">=5.14"
 sdss-clu = ">=1.2.0"
+sdss-basecam = ">= 0.5"
 
 [tool.poetry.dev-dependencies]
 ipython = ">=7.11.0"

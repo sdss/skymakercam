@@ -35,6 +35,7 @@ def plot_data(data):
         plt_use('Qt5Agg')
         # plt_use('TkAgg')
         plt.ion()
+        plt.tight_layout()
         plt.title('skymaker cam', fontweight ="bold")
         plt.show()
         plot = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=m-s, vmax=m+s, origin='lower')

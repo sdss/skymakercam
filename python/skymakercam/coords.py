@@ -37,11 +37,11 @@ def in_box(xxs, yys, pa_deg, inst):
     
     phi=(np.pi-Atheta) / 2.
     h1 = inst.chip_size_mm[0] / (2. * np.tan(phi))
-    h2 = inst.r_outer-inst.chip_size_mm[1]-h1
+    h2 = inst.r_outer-inst.chip_size_mm[1] - h1
     
     chi = np.arctan(h2 / (inst.chip_size_mm[0] / 2.))
     
-    Br = np.sqrt(inst.chip_size_mm[0]*  inst.chip_size_mm[0] / 2. / 2. + h2* h2)
+    Br = np.sqrt(inst.chip_size_mm[0]*  inst.chip_size_mm[0] / 2. / 2. + h2 * h2)
     Btheta = np.pi / 2. - chi
             
     
@@ -76,6 +76,7 @@ def in_box(xxs, yys, pa_deg, inst):
     #origin is arbitrarily at (Bx,By) the lower left corner
     #note! this does not account for the 6th mirror, which flips the handedness
     return flagg, derot_xxs + Bx,derot_yys - By
+
 
 def ad2xy(cats2, c_icrs, inst):
     # converts ra/dec positions to angular offsets from field center (c_icrs)

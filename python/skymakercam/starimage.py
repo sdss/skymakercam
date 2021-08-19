@@ -15,6 +15,19 @@ from astropy.coordinates import SkyCoord  # High-level coordinates
 #from astropy.table import Table, hstack, vstack
 from skymakercam.coords import *
 
+
+class Guidestars:
+    def __init__(self, ras, decs, dd_x_mm, dd_y_mm, chip_xxs, chip_yys, mags, cats2):
+        self.ras = ras
+        self.decs = decs
+        self.dd_x_mm =dd_x_mm
+        self.dd_y_mm =dd_y_mm
+        self.chip_xxs = chip_xxs
+        self.chip_yys = chip_yys
+        self.mags = mags
+        self.cats2 = cats2
+
+
 def find_guide_stars(c, pa, inst, plotflag=False, remote_catalog=False, east_is_right=True, cull_cat=True, recycled_cat = None, return_focal_plane_coords=False, remote_maglim=None):
     # function to figure out which (suitable) guide stars are on the guider chip
     # input:
@@ -149,9 +162,8 @@ def find_guide_stars(c, pa, inst, plotflag=False, remote_catalog=False, east_is_
     
     dd_x_mm = dd_x_mm[iii]
     dd_y_mm = dd_y_mm[iii]
-
         
-    return ras, decs, dd_x_mm, dd_y_mm, chip_xxs, chip_yys, mags, cats2
+    return Guidestars(ras, decs, dd_x_mm, dd_y_mm, chip_xxs, chip_yys, mags, cats2)
     
 
 def find_guide_stars_auto(input_touple, inst, folder = "/guide_star_search_results_no_faint_limit", verbose=False, save_bin = True):
@@ -180,8 +192,6 @@ def find_guide_stars_auto(input_touple, inst, folder = "/guide_star_search_resul
     return index,len(ras), time.time() - t0
 
 
-
-
 def make_synthetic_image(chip_x, chip_y, gmag, inst, exp_time=5, seeing_arcsec=3.5, sky_flux=10, defocus=0.0):
     
     seeing_pixel = seeing_arcsec * inst.image_scale / (inst.chip_size_mm[0] / inst.chip_size_pix[0] * 1000) / 2.36
@@ -195,7 +205,7 @@ def make_synthetic_image(chip_x, chip_y, gmag, inst, exp_time=5, seeing_arcsec=3
     y_position = y_position[selection_on_chip]
     gmag = gmag[selection_on_chip]
     
-    print("{} of {} stars are on the chip.".format(np.sum(selection_on_chip),len(selection_on_chip)))
+    # print("{} of {} stars are on the chip.".format(np.sum(selection_on_chip),len(selection_on_chip)))
     
     #gaia_legend_mag = np.arange(17,4,mag_lim_index)
     #gaia_legend_flux= 10**(-(np.array(gaia_legend_mag)+zp)/2.5)
@@ -247,4 +257,5 @@ def make_synthetic_image(chip_x, chip_y, gmag, inst, exp_time=5, seeing_arcsec=3
     combined = star_image_c_noise + background_array + readout_noise_array + inst.bias
 
     return combined
+
 

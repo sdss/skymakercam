@@ -9,11 +9,13 @@ from astropy.coordinates import ICRS, Galactic, FK4, FK5  # Low-level frames
 from astropy.coordinates import Angle, Latitude, Longitude  # Angles
 import astropy.units as u
 from astroquery.gaia import Gaia
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, gaussian_gradient_magnitude
 from scipy import optimize
 import healpy as hp
 from astropy.table import Table, hstack, vstack
 #Instrument specs
+
+
 
 class InstrumentParameters:
     def __init__(self,standard_config=True):
@@ -80,9 +82,9 @@ class InstrumentParameters:
 
 
 def get_cat_using_healpix(c,plotflag=False,inst=InstrumentParameters(standard_config=True)):
-    vec = hp.ang2vec(np.deg2rad(c.dec.value+90),np.deg2rad(c.ra.value))
+    vec = hp.ang2vec(np.np.deg2rad(c.dec.value+90),np.np.deg2rad(c.ra.value))
 
-    ipix_disc = hp.query_disc(nside=64, vec=vec, radius=np.deg2rad(inst.outer_search_radius),inclusive=True)
+    ipix_disc = hp.query_disc(nside=64, vec=vec, radius=np.np.deg2rad(inst.outer_search_radius),inclusive=True)
     print(ipix_disc)
 
     if plotflag:
@@ -109,9 +111,9 @@ def get_cat_using_healpix(c,plotflag=False,inst=InstrumentParameters(standard_co
 
 
 def get_cat_using_healpix2(c,plotflag=False,inst=InstrumentParameters(standard_config=True),verbose=False):
-    vec = hp.ang2vec(np.deg2rad(-c.dec.value+90),np.deg2rad(c.ra.value))
+    vec = hp.ang2vec(np.np.deg2rad(-c.dec.value+90),np.np.deg2rad(c.ra.value))
 
-    ipix_disc = hp.query_disc(nside=64, vec=vec, radius=np.deg2rad(inst.outer_search_radius),inclusive=True,nest=True)
+    ipix_disc = hp.query_disc(nside=64, vec=vec, radius=np.np.deg2rad(inst.outer_search_radius),inclusive=True,nest=True)
     if verbose: print(ipix_disc)
 
     if plotflag:
@@ -213,47 +215,34 @@ def ad2xy(cats2,c_icrs,inst=InstrumentParameters(standard_config=True)):
     #convert ra&dec of guide stars to xy position in relation to field center (in arcsec)
 
     
-    # For loop of Kathryn
-    #dd_y=np.zeros(len(cats2))
-    #dd_x=np.zeros(len(cats2))
-    #for i in range(dd_y.size):
-
-    #    ww1=cats2[i]
-    #    dd_y[i]=sphdist(ww1['ra'],c_icrs.dec.deg,ww1['ra'],ww1['dec'])*3600. #in arcsec
-    #    if ww1['dec'] < c_icrs.dec.deg: 
-    #        dd_y[i]*=(-1.)
-    #    dd_x[i]=sphdist(c_icrs.ra.deg,ww1['dec'],ww1['ra'],ww1['dec'])*3600. #in arcsec
-    #    if ww1['ra'] > c_icrs.ra.deg: 
-    #        dd_x[i]*=(-1.)
-
     #Without the slow loop (Max)
     dd_y = sphdist(cats2['ra'],c_icrs.dec.deg,cats2['ra'],cats2['dec'])*3600. #in arcsec 
     dd_y *= (2*(cats2['dec'] > c_icrs.dec.deg).astype(float)-1)
     
-    dd_x=sphdist(c_icrs.ra.deg,cats2['dec'],cats2['ra'],cats2['dec'])*3600. #in arcsec
+    dd_x = sphdist(c_icrs.ra.deg,cats2['dec'],cats2['ra'],cats2['dec'])*3600. #in arcsec
     dd_x *= (2*(cats2['ra'] < c_icrs.ra.deg).astype(float)-1)  
     
     #convert to mm
-    dd_x_mm=dd_x*inst.image_scale/1e3
-    dd_y_mm=dd_y*inst.image_scale/1e3
+    dd_x_mm = dd_x * inst.image_scale / 1e3
+    dd_y_mm = dd_y * inst.image_scale / 1e3
     
     return dd_x_mm,dd_y_mm
     
-def deg2rad(degrees):
-    return degrees*np.pi/180.
+#def np.deg2rad(degrees):
+    #return degrees*np.pi/180.
 
-def rad2deg(radians):
-    return radians*180./np.pi
+#def np.rad2deg(radians):
+    #return radians*180./np.pi
 
-def sphdist (ra1, dec1, ra2, dec2):
+def sphdist(ra1, dec1, ra2, dec2):
 # measures the spherical distance in degrees
 # The input has to be in degrees too
-    dec1_r = deg2rad(dec1)
-    dec2_r = deg2rad(dec2)
-    ra1_r = deg2rad(ra1)
-    ra2_r = deg2rad(ra2)
-    return 2*rad2deg(np.arcsin(np.sqrt((np.sin((dec1_r - dec2_r) / 2))**2 + np.cos(dec1_r) * np.cos(dec2_r) * (np.sin((deg2rad(ra1 - ra2)) / 2))**2)))
-#    return rad2deg(np.arccos(np.sin(dec1_r)*np.sin(dec2_r)+np.cos(dec1_r)*np.cos(dec2_r)*np.cos(np.abs(ra1_r-ra2_r))))
+    dec1_r = np.deg2rad(dec1)
+    dec2_r = np.deg2rad(dec2)
+    ra1_r = np.deg2rad(ra1)
+    ra2_r = np.deg2rad(ra2)
+    return 2*np.rad2deg(np.arcsin(np.sqrt((np.sin((dec1_r - dec2_r) / 2))**2 + np.cos(dec1_r) * np.cos(dec2_r) * (np.sin((np.deg2rad(ra1 - ra2)) / 2))**2)))
+#    return np.rad2deg(np.arccos(np.sin(dec1_r)*np.sin(dec2_r)+np.cos(dec1_r)*np.cos(dec2_r)*np.cos(np.abs(ra1_r-ra2_r))))
     
 
 def find_guide_stars(c, pa, plotflag=False, remote_catalog=False, east_is_right=True,cull_cat=True,recycled_cat = None,return_focal_plane_coords=False,remote_maglim=None,inst=InstrumentParameters(standard_config=True)):
@@ -354,12 +343,6 @@ def find_guide_stars(c, pa, plotflag=False, remote_catalog=False, east_is_right=
     #overplot the identified guide stars positions
     if plotflag:
         iii=np.equal(selection_on_chip,1)
-        #print('number of stars on the guide chip: ',np.sum(iii))
-        
-    
-    #also check they aren't crowded. no neighbor within guide_widow (set in preamble)
-    
-    #print("Before crowding check: ",np.sum(iii),len(iii))
     
     selection_not_crowded = (selection_on_chip==True)
     if inst.min_neighbour_distance>0:
@@ -401,16 +384,15 @@ def find_guide_stars(c, pa, plotflag=False, remote_catalog=False, east_is_right=
     return ras,decs,dd_x_mm,dd_y_mm,chip_xxs,chip_yys,mags,cats2
     
 
-def find_guide_stars_auto(input_touple,inst=InstrumentParameters(standard_config=True),folder="/data/beegfs/astro-storage/groups/others/neumayer/haeberle/lvm_outsourced/guide_star_search_results_no_faint_limit/",verbose=False,save_bin = True):
+def find_guide_stars_auto(input_touple,inst=InstrumentParameters(standard_config=True), folder="/data/beegfs/astro-storage/groups/others/neumayer/haeberle/lvm_outsourced/guide_star_search_results_no_faint_limit/", verbose=False, save_bin = True):
     #print(inst.mag_lim_lower)
     t0 = time.time()
     index = input_touple[0]
     c = input_touple[1]
-    if verbose: print("Analyzing pointing {} (ra: {} dec: {})\n".format(index+1,c.ra.deg,c.dec.deg))
-    #c = SkyCoord(frame="galactic", l=280, b=0,unit='deg')
-    #print(c)
+    if verbose: 
+        print("Analyzing pointing {} (ra: {} dec: {})\n".format(index+1,c.ra.deg,c.dec.deg))
+
     for pa in [0,60,120,180,240,300]:
-        #qqprint("PA: ",pa)
         if pa==0:
             culled_cat=get_cat_using_healpix2(c,plotflag=False,inst=inst)
         ras,decs,dd_x_mm,dd_y_mm,chip_xxs,chip_yys,mags,culled_cat = find_guide_stars(c,pa=pa,plotflag=False,recycled_cat=culled_cat,inst=inst)    
@@ -429,8 +411,9 @@ def find_guide_stars_auto(input_touple,inst=InstrumentParameters(standard_config
 
 
 
-def make_synthetic_image(chip_x,chip_y,gmag,inst,exp_time=5,seeing_arcsec=3.5, sky_flux=10,plotflag = True,write_output=None):
-    seeing_pixel = seeing_arcsec*inst.image_scale / (inst.chip_width/inst.pixel_width*1000) / 2.36
+def make_synthetic_image(chip_x, chip_y, gmag,inst, exp_time=5, seeing_arcsec=3.5, sky_flux=10, defocus=None):
+    
+    seeing_pixel = seeing_arcsec * inst.image_scale / (inst.chip_width / inst.pixel_width * 1000) / 2.36
     
     x_position = chip_x / inst.chip_width * inst.pixel_width
     y_position = chip_y / inst.chip_height * inst.pixel_height
@@ -448,19 +431,13 @@ def make_synthetic_image(chip_x,chip_y,gmag,inst,exp_time=5,seeing_arcsec=3.5, s
     
     gaia_flux = 10**(-(gmag+inst.zp)/2.5)
 
-    background = (sky_flux+inst.dark_current)*exp_time
+    background = (sky_flux + inst.dark_current) * exp_time
     n_pix = 7*7
 
 
-    background_noise = np.sqrt(background+inst.readout_noise**2)
-    signal = gaia_flux*exp_time
-    noise = np.sqrt(inst.readout_noise**2+signal+n_pix*background)
+    signal = gaia_flux * exp_time
+    noise = np.sqrt(inst.readout_noise ** 2 + signal + n_pix * background)
 
-
-    sn = signal/noise
-
-
-    
     star_image = np.zeros((inst.pixel_height,inst.pixel_width))
 
     for index, current_flux in enumerate(gaia_flux):
@@ -473,25 +450,25 @@ def make_synthetic_image(chip_x,chip_y,gmag,inst,exp_time=5,seeing_arcsec=3.5, s
         xx = current_x-i
         yy = current_y-j
 
-        #
-        #test_image[j,i] = current_f
+        star_image[j,i] = (1 - xx) * (1 - yy) * current_flux * exp_time
 
 
-        star_image[j,i] = (1-xx)*(1-yy)*current_flux*exp_time
-
-
-        if i<inst.pixel_width-1:
-            star_image[j,i+1] = (xx)*(1-yy)*current_flux*exp_time
-        if j< inst.pixel_height-1:
-            star_image[j+1,i] = (1-xx)*(yy)*current_flux*exp_time
-        if (i<inst.pixel_width-1) & (j<inst.pixel_height-1):
-            star_image[j+1,i+1] = (xx)*(yy)*current_flux*exp_time
+        if i < inst.pixel_width - 1:
+            star_image[j,i+1] = (xx) * (1-yy) * current_flux * exp_time
+        if j < inst.pixel_height - 1:
+            star_image[j+1,i] = (1 - xx) * (yy) * current_flux * exp_time
+        if (i < inst.pixel_width - 1) & (j < inst.pixel_height - 1):
+            star_image[j+1,i+1] = (xx) * (yy) * current_flux * exp_time
 
         #star_image[int(current_y),int(current_x)] = current_flux*exp_time
 
-    star_image_c = gaussian_filter(star_image, sigma=seeing_pixel,mode="constant")
-    star_image_c_noise = np.random.poisson(lam=star_image_c,size = star_image_c.shape)
+#    star_image_c = gaussian_filter(star_image, sigma=seeing_pixel, mode="constant")
+    if defocus:
+      star_image_c = gaussian_gradient_magnitude(star_image, sigma=defocus*seeing_pixel, mode='constant')
+    else:
+      star_image_c = gaussian_filter(star_image, sigma=seeing_pixel, mode="constant")
 
+    star_image_c_noise = np.random.poisson(lam=star_image_c,size = star_image_c.shape)
     
     background_array = np.random.poisson(background,size=star_image.shape)
 
@@ -499,35 +476,13 @@ def make_synthetic_image(chip_x,chip_y,gmag,inst,exp_time=5,seeing_arcsec=3.5, s
 
     combined = star_image_c_noise + background_array + readout_noise_array + inst.bias
 
-#hdu = fits.PrimaryHDU(star_image_c)
-#hdu.writeto("/home/haeberle/exchange/lvm/synthetic_image_sparse_field_5s.fits",overwrite=True)
-
-
-    
-    if write_output is not None:
-        
-        hdu = fits.PrimaryHDU(combined)
-
-
-        #filename = "/home/haeberle/exchange/lvm/synthetic_images/pointing_"+pointing_string+"_{:d}ms.fits".format(int(1000*exp_time))
-        print("writing file: ",write_output)
-        hdu.writeto(write_output,overwrite=False)
-
-    print("Nstars: ",x_position.shape)
-    
     return combined
 
-def calc_sn(gmag,inst,n_pix=7*7,sky_flux=10,exp_time=5):
+def calc_sn(gmag, inst, n_pix=7*7, sky_flux=10, exp_time=5):
         gaia_flux = 10**(-(gmag+inst.zp)/2.5)
-
         background = (sky_flux+inst.dark_current)*exp_time
-
-
         background_noise = np.sqrt(background+inst.readout_noise**2)
         signal = gaia_flux*exp_time
         noise = np.sqrt(inst.readout_noise**2+signal+n_pix*background)
-
-
         sn = signal/noise
-
         return sn
