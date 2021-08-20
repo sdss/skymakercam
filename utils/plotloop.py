@@ -74,7 +74,6 @@ def plot_data(data):
         m, s = np.mean(data), np.std(data)
         lp, up = np.percentile(data, 0.5), np.percentile(data,99.8)
 
-        plt.title('skymaker cam', fontweight ="bold")
 #        plot = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=m-s, vmax=m+s, origin='lower')
         plot = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=lp, vmax=up, origin='lower')
         plt.colorbar(orientation='vertical')
@@ -88,9 +87,10 @@ async def plotloop(exptim, name, verb=False, config="../etc/cameras.yaml"):
     if verb:
         cs.logger.log(logging.DEBUG, f"config {cs.list_available_cameras()}")
 
-    exp = await cam.expose(exptim, "LAB TEST")
+    exp = await cam.expose(exptim, name)
     #cs.logger.log(logging.DEBUG, f"config {str(exp.data)}")
     plot_data(exp.data)
+    plt.title(f"skymaker cam {name}", fontweight ="bold")
     objects = plot_stars(exp.data)
     cs.logger.log(logging.DEBUG, f"Found Objects: {len(objects)}")
     cs.logger.log(logging.DEBUG, f"Found Objects: {objects[:7]}")
