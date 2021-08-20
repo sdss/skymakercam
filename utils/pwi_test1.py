@@ -17,6 +17,10 @@ import json
 
 from skymakercam.pwi import Client as Pwi
 from clu.tools import CommandStatus
+
+from astropy import units as u
+
+from astropy.coordinates import SkyCoord
         
 async def test_pwi(args):
 
@@ -24,12 +28,18 @@ async def test_pwi(args):
 
     if args.verbose:
         pwi.log.sh.setLevel(0)
-
    
     await pwi.connect()
     pwi.log.debug(f"RabbitMQ is connected: {pwi.is_connected()}")
 
-    pwi.log.debug(f"Status: {await pwi.status()}")
+    status = await pwi.status()
+    pwi.log.debug(f"Position deg, ra: {status},")
+
+    ra = status['ra_j2000_hours']
+    dec = status['dec_j2000_degs']
+    c = SkyCoord(ra=ra * u.hour, dec=dec * u.degree, frame='icrs')
+    pwi.log.info(f"SkyCoord: {c} in deg")
+    assert(c.ra.hour == ra)
 
 
 def main():
