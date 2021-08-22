@@ -10,6 +10,7 @@ import glob
 import os
 import tempfile
 import pathlib
+import math
 
 from logging import INFO, WARNING
 
@@ -188,6 +189,7 @@ class SkymakerCamera(
         if not self.guide_stars:
             self.guide_stars = find_guide_stars(self.tcs_coord, self.tcs_pa, self.inst_params, remote_catalog=True)
         
+        self.defocus = math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM')/100)**2
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,
                                     gmag=self.guide_stars.mags,

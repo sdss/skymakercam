@@ -72,10 +72,10 @@ def plot_data(data):
         plt.ion()
         plt.tight_layout()
         m, s = np.mean(data), np.std(data)
-        lp, up = np.percentile(data, 0.5), np.percentile(data,99.8)
+        lp, up = np.percentile(data, 0.5), np.percentile(data,99.9995)
 
-#        plot = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=m-s, vmax=m+s, origin='lower')
-        plot = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=lp, vmax=up, origin='lower')
+        plot = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=m-s, vmax=m+s, origin='lower')
+#        plot = plt.imshow(data, interpolation='nearest', cmap=cmap, vmin=lp, vmax=up, origin='lower')
         plt.colorbar(orientation='vertical')
         
         

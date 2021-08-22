@@ -11,6 +11,7 @@ import os
 import sys
 import logging
 import time
+import math
 
 import asyncio
 import json
@@ -20,21 +21,25 @@ from clu.tools import CommandStatus
         
 async def test_focus_stage(args):
 
+    focus_stage = FocusStage(args.focus_stage, user=args.user, password=args.password, host=args.host, port=args.port)
+   
     if args.verbose:
         focus_stage.log.sh.setLevel(0)
 
-    focus_stage = FocusStage(args.focus_stage, user=args.user, password=args.password, host=args.host, port=args.port)
-   
     await focus_stage.connect()
     focus_stage.log.debug(f"RabbitMQ is connected: {focus_stage.is_connected()}")
 
 
-    focus_stage.log.debug(f"Is Reachable: {focus_stage.isReachable()}")
+    #focus_stage.log.debug(f"Is Reachable: {await focus_stage.isReachable()}")
 
     focus_stage.log.debug(f"DeviceEncoderPosition: {await focus_stage.getDeviceEncoderPosition('UM')}")
 
-    if not await focus_stage.isAtHome():
-        await focus_stage.moveToHome()
+
+    focus_stage.log.debug(f"DeviceEncoderPosition: {math.fabs(await focus_stage.getDeviceEncoderPosition(unit='UM'))}")
+    focus_stage.log.debug(f"DeviceEncoderPosition: {math.fabs(await focus_stage.getDeviceEncoderPosition(unit='UM')/100)**2}")
+
+    #if not await focus_stage.isAtHome():
+        #await focus_stage.moveToHome()
 
 def main():
 
