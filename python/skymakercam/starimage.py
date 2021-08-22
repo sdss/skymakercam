@@ -205,7 +205,7 @@ def make_synthetic_image(chip_x, chip_y, gmag, inst, exp_time=5, seeing_arcsec=3
     y_position = y_position[selection_on_chip]
     gmag = gmag[selection_on_chip]
     
-    # print("{} of {} stars are on the chip.".format(np.sum(selection_on_chip),len(selection_on_chip)))
+    print("{} of {} stars are on the chip.".format(np.sum(selection_on_chip),len(selection_on_chip)))
     
     #gaia_legend_mag = np.arange(17,4,mag_lim_index)
     #gaia_legend_flux= 10**(-(np.array(gaia_legend_mag)+zp)/2.5)
@@ -245,8 +245,9 @@ def make_synthetic_image(chip_x, chip_y, gmag, inst, exp_time=5, seeing_arcsec=3
 
 #    star_image_c = gaussian_filter(star_image, sigma=seeing_pixel, mode="constant")
     star_image_c = gaussian_filter(star_image, sigma=seeing_pixel, mode="constant")
+    print("{} defocus.".format(1+defocus/100000))
     if defocus != 0.0:
-        star_image_c = gaussian_gradient_magnitude(star_image, sigma=defocus, mode='constant')
+        star_image_c = gaussian_gradient_magnitude(star_image, sigma=1+defocus/100, mode='constant')
 
     star_image_c_noise = np.random.poisson(lam=star_image_c,size = star_image_c.shape)
     
