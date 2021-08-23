@@ -34,6 +34,7 @@ from basecam.utils import cancel_task
 
 from skymakercam.params import load as params_load
 from skymakercam.focus_stage import Client as FocusStage
+from skymakercam.xy_stage import Client as XYStage
 
 from astropy.coordinates import SkyCoord
 from skymakercam.starimage import find_guide_stars, make_synthetic_image
@@ -127,6 +128,8 @@ class SkymakerCamera(
         dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
         self.tcs_coord = SkyCoord(ra=ra0, dec=dec0, unit="deg")
         self.tcs_pa = 0
+
+        self._xy_stage = XYStage(self.config_get('xy_stage'), None)
         
         self.guide_stars = None
         
@@ -136,6 +139,7 @@ class SkymakerCamera(
         self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
         self.exp_time = self.config_get('default.exp_time',5)
         
+
         self._shutter_position = False
 
         self.temperature = 25
@@ -159,6 +163,20 @@ class SkymakerCamera(
         self.log(f"connecting ...")
         if not self._focus_stage.is_connected():
             await self._focus_stage.connect()
+
+        await self._focus_stage.getDeviceEncoderPosition(unit='UM')
+
+        #if not self._xy_stage.is_connected():
+            #await self._xy_stage.connect()
+
+        #pos = await self._xy_stage.getDeviceEncoderPosition(unit='DEG')
+            #if pos.x() + pos.y() == 0.0:
+                #await xy_stage.moveAbsolute(201.70, -47.48, 'DEG')
+            
+            #self.log(f"pos {pos}")
+
+
+
             #cmd = await self._focus_stage.client_send_command_blocking('get_schema')
             #schema = json.loads(cmd.replies[-1].body["schema"])
             #self.log(f"{schema}")
@@ -189,8 +207,12 @@ class SkymakerCamera(
         if not self.guide_stars:
             self.guide_stars = find_guide_stars(self.tcs_coord, self.tcs_pa, self.inst_params, remote_catalog=True)
         
-        self.defocus = math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))**2
-        self.log(f"{self.defocus}")
+        self.defocus = (math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))/100)**2
+
+        self.log(f"defocus {self.defocus}")
+        
+#        self.log(f"pos {await self._xy_stage.getDeviceEncoderPosition(unit='DEG')}")
+        
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,
                                     gmag=self.guide_stars.mags,

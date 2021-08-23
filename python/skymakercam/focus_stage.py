@@ -19,13 +19,15 @@ class Client(AMQPClient):
     """
 
     def __init__(
-        self, name: str,
+        self, 
+        name: str,
         user: str = "guest",
         password: str = "guest",
         host: str = "localhost",
         port: int = 5672,
         ssl: bool = False,
     ):
+        self.svc_name = name
         super().__init__(name=name + ".client", 
                          models=[name],
                          user=user,
@@ -48,12 +50,13 @@ class Client(AMQPClient):
 
 
     async def client_send_command_blocking(self, cmd: str, *args):
-        future =  await self.send_command(self.name, cmd, *args)
+        print(self.name)
+        future =  await self.send_command(self.svc_name, cmd, *args)
         return await future
 
 
     async def client_send_command_async(self, cmd: str, *args):
-        return await self.send_command(self.name, cmd, *args)
+        return await self.send_command(self.svc_name, cmd, *args)
 
 
     async def isReachable(self):
