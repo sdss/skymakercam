@@ -37,6 +37,8 @@ from skymakercam.focus_stage import Client as FocusStage
 from skymakercam.xy_stage import Client as XYStage
 
 from astropy.coordinates import SkyCoord
+import astropy.units as u
+
 from skymakercam.starimage import find_guide_stars, make_synthetic_image
 
 __all__ = ['SkymakerCameraSystem', 'SkymakerCamera']
@@ -128,8 +130,12 @@ class SkymakerCamera(
         dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
         self.tcs_coord = SkyCoord(ra=ra0, dec=dec0, unit="deg")
         self.tcs_pa = 0
+        self.ra_off = 0.0
+        self.dec_off = 0.0
 
-        self._xy_stage = XYStage(self.config_get('xy_stage'), None)
+        self._ra_stage = FocusStage('lvm.skye.foc')
+        self._dec_stage = FocusStage('lvm.skyw.foc')
+        self._xy_stage = XYStage(self.config_get('xy_stage', None))
         
         self.guide_stars = None
         
@@ -166,21 +172,16 @@ class SkymakerCamera(
 
         await self._focus_stage.getDeviceEncoderPosition(unit='UM')
 
-        #if not self._xy_stage.is_connected():
-            #await self._xy_stage.connect()
+        if not self._ra_stage.is_connected():
+            await self._ra_stage.connect()
 
-        #pos = await self._xy_stage.getDeviceEncoderPosition(unit='DEG')
-            #if pos.x() + pos.y() == 0.0:
-                #await xy_stage.moveAbsolute(201.70, -47.48, 'DEG')
-            
-            #self.log(f"pos {pos}")
+        await self._ra_stage.getDeviceEncoderPosition()
 
+        if not self._dec_stage.is_connected():
+            await self._dec_stage.connect()
 
+        await self._dec_stage.getDeviceEncoderPosition()
 
-            #cmd = await self._focus_stage.client_send_command_blocking('get_schema')
-            #schema = json.loads(cmd.replies[-1].body["schema"])
-            #self.log(f"{schema}")
-            #assert(cmd.status == CommandStatus.DONE)
         return True
 
     async def _disconnect_internal(self):
@@ -206,13 +207,19 @@ class SkymakerCamera(
     async def create_synthetic_image(self):
         if not self.guide_stars:
             self.guide_stars = find_guide_stars(self.tcs_coord, self.tcs_pa, self.inst_params, remote_catalog=True)
-        
-        self.defocus = (math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))/100)**2
 
+        ra_off = await self._ra_stage.getDeviceEncoderPosition()
+        dec_off = await self._dec_stage.getDeviceEncoderPosition()
+        if ra_off != self.ra_off or dec_off != self.dec_off:
+             self.log(f"target {self.ra_off} {self.dec_off}")
+             tcs_coord = self.tcs_coord
+             self.guide_stars = find_guide_stars(tcs_coord.spherical_offsets_by(self.ra_off*u.arcsec, self.dec_off*u.arcsec), self.tcs_pa, self.inst_params, remote_catalog=False, cull_cat=False)
+             self.ra_off = ra_off
+             self.dec_off = dec_off
+            
+        self.defocus = (math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))/100)**2
         self.log(f"defocus {self.defocus}")
-        
-#        self.log(f"pos {await self._xy_stage.getDeviceEncoderPosition(unit='DEG')}")
-        
+
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,
                                     gmag=self.guide_stars.mags,

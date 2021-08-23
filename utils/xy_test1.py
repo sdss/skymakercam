@@ -16,17 +16,24 @@ import math
 import asyncio
 import json
 
-from skymakercam.xy_stage import Client as XY
 from clu.tools import CommandStatus
+
+
+from skymakercam.focus_stage import Client as FocusStage
+from skymakercam.xy_stage import Client as XYStage
+
         
 async def test_xy_stage(args):
 
-    xy_stage = XY(args.xy_stage, user=args.user, password=args.password, host=args.host, port=args.port)
+    focus_stage = FocusStage("lvm.sci.foc", user=args.user, password=args.password, host=args.host, port=args.port)
+    xy_stage = XYStage(args.xy_stage, user=args.user, password=args.password, host=args.host, port=args.port)
    
     if args.verbose:
         xy_stage.log.sh.setLevel(0)
 
+    await focus_stage.connect()
     await xy_stage.connect()
+    
     xy_stage.log.debug(f"RabbitMQ is connected: {xy_stage.is_connected()}")
 
 
@@ -36,11 +43,14 @@ async def test_xy_stage(args):
     
     xy_stage.log.debug(f"DeviceEncoderPosition: {await xy_stage.getDeviceEncoderPosition(unit='DEG')}")
 
+    await focus_stage.moveRelative(22, unit='UM')
+
     await xy_stage.moveRelative(22, 33, unit='DEG')
 #    await xy_stage.moveAbsolute(201, -47, 'DEG')
     await xy_stage.moveAbsolute(201.70, -47.48, unit='DEG')
 
     xy_stage.log.debug(f"DeviceEncoderPosition: {await xy_stage.getDeviceEncoderPosition(unit='DEG')}")
+    xy_stage.log.debug(f"DeviceEncoderPosition: {await focus_stage.getDeviceEncoderPosition(unit='UM')}")
 
 
     #if not await xy_stage.isAtHome():

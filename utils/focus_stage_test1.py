@@ -30,14 +30,16 @@ async def test_focus_stage(args):
     focus_stage.log.debug(f"RabbitMQ is connected: {focus_stage.is_connected()}")
 
 
-    #focus_stage.log.debug(f"Is Reachable: {await focus_stage.isReachable()}")
+    focus_stage.log.debug(f"Is Reachable: {await focus_stage.isReachable()}")
+
+    await focus_stage.moveToHome()
 
     focus_stage.log.debug(f"DeviceEncoderPosition: {await focus_stage.getDeviceEncoderPosition('UM')}")
 
+    await focus_stage.moveAbsolute(2000, 'UM')
 
     focus_stage.log.debug(f"DeviceEncoderPosition: {math.fabs(await focus_stage.getDeviceEncoderPosition(unit='UM'))}")
-    focus_stage.log.debug(f"DeviceEncoderPosition: {math.fabs(await focus_stage.getDeviceEncoderPosition(unit='UM')/100)**2}")
-
+ 
     #if not await focus_stage.isAtHome():
         #await focus_stage.moveToHome()
 
