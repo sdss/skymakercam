@@ -34,7 +34,8 @@ from basecam.utils import cancel_task
 
 from skymakercam.params import load as params_load
 from skymakercam.focus_stage import Client as FocusStage
-from skymakercam.xy_stage import Client as XYStage
+#from skymakercam.xy_stage import Client as XYStage
+from skymakercam.pwi import Client as Telescope
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
@@ -125,7 +126,7 @@ class SkymakerCamera(
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
 
 
-        self._tcs = None
+        self._tcs = Telescope(self.config_get('tcs', None))
         ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
         dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
         self.tcs_coord = SkyCoord(ra=ra0, dec=dec0, unit="deg")
@@ -168,27 +169,30 @@ class SkymakerCamera(
     async def _connect_internal(self, **connection_params):
         self.log(f"connecting ...")
         if not self._focus_stage.is_connected():
-            await self._focus_stage.connect()
+            await self._focus_stage.start()
 
         await self._focus_stage.getDeviceEncoderPosition(unit='UM')
 
         if not self._ra_stage.is_connected():
-            await self._ra_stage.connect()
+            await self._ra_stage.start()
 
         await self._ra_stage.getDeviceEncoderPosition()
 
         if not self._dec_stage.is_connected():
-            await self._dec_stage.connect()
+            await self._dec_stage.start()
 
         await self._dec_stage.getDeviceEncoderPosition()
+
+        if not self._tcs.is_connected():
+            await self._tcs.start()
 
         return True
 
     async def _disconnect_internal(self):
         """Close connection to camera.
         """
-        self.tcs = None
-        self.focus_stage.disconnect()
+        self.tcs.stop()
+        self.focus_stage.stop()
 
     def _status_internal(self):
         return {"temperature": self.temperature, "cooler": 10.0}

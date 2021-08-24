@@ -29,7 +29,7 @@ async def test_pwi(args):
     if args.verbose:
         pwi.log.sh.setLevel(0)
    
-    await pwi.connect()
+    await pwi.start()
     pwi.log.debug(f"RabbitMQ is connected: {pwi.is_connected()}")
 
     status = await pwi.status()
@@ -39,7 +39,7 @@ async def test_pwi(args):
     dec = status['dec_j2000_degs']
     c = SkyCoord(ra=ra * u.hour, dec=dec * u.degree, frame='icrs')
     pwi.log.info(f"SkyCoord: {c} in deg")
-    assert(c.ra.hour == ra)
+#    assert(c.ra.hour == ra)
 
 
 def main():
@@ -63,7 +63,7 @@ def main():
 
     # the last argument is mandatory: must be the name of exactly one camera
     # as used in the configuration file
-    parser.add_argument('pwi', default="test.first.pwi")
+    parser.add_argument('pwi', default="lvm.sci.pwi")
 
     asyncio.run(test_pwi(parser.parse_args()))
     

@@ -41,7 +41,7 @@ class Client(AMQPClient):
         return self.connection and self.connection.connection is not None
 
 
-    async def connect(self):  
+    async def start(self):  
         """ Connect
         """
         if not self.is_connected():
