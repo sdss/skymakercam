@@ -35,6 +35,7 @@ from basecam.utils import cancel_task
 from skymakercam.params import load as params_load
 from skymakercam.focus_stage import Client as FocusStage
 from skymakercam.xy_stage import Client as XYStage
+from skymakercam.pwi import Client as Telescope
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
@@ -125,10 +126,12 @@ class SkymakerCamera(
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
 
 
-        self._tcs = None
-        ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
-        dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
-        self.tcs_coord = SkyCoord(ra=ra0, dec=dec0, unit="deg")
+        self._tcs = Telescope(self.config_get('tcs', None))
+
+        #ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
+        #dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
+        #self.tcs_coord = SkyCoord(ra=ra0, dec=dec0, unit="deg")
+        self.tcs_coord = None
         self.tcs_pa = 0
         self.ra_off = 0.0
         self.dec_off = 0.0
@@ -168,19 +171,24 @@ class SkymakerCamera(
     async def _connect_internal(self, **connection_params):
         self.log(f"connecting ...")
         if not self._focus_stage.is_connected():
-            await self._focus_stage.connect()
+            await self._focus_stage.start()
 
         await self._focus_stage.getDeviceEncoderPosition(unit='UM')
 
         if not self._ra_stage.is_connected():
-            await self._ra_stage.connect()
+            await self._ra_stage.start()
 
         await self._ra_stage.getDeviceEncoderPosition()
 
         if not self._dec_stage.is_connected():
-            await self._dec_stage.connect()
+            await self._dec_stage.start()
 
         await self._dec_stage.getDeviceEncoderPosition()
+
+        if not self._tcs.is_connected():
+            await self._tcs.start()
+
+#        self.log(f"{await self._tcs.status()}")
 
         return True
 
@@ -205,21 +213,25 @@ class SkymakerCamera(
         self._change_temperature_task = self.loop.create_task(change_temperature())
 
     async def create_synthetic_image(self):
+
         if not self.guide_stars:
+            # super crowded field
+            #ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
+            #dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
+            self.tcs_coord = await self._tcs.get_position_j2000()
             self.guide_stars = find_guide_stars(self.tcs_coord, self.tcs_pa, self.inst_params, remote_catalog=True)
 
-        ra_off = await self._ra_stage.getDeviceEncoderPosition()
-        dec_off = await self._dec_stage.getDeviceEncoderPosition()
-        if ra_off != self.ra_off or dec_off != self.dec_off:
-             self.log(f"target {self.ra_off} {self.dec_off}")
-             tcs_coord = self.tcs_coord
-             self.guide_stars = find_guide_stars(tcs_coord.spherical_offsets_by(self.ra_off*u.arcsec, self.dec_off*u.arcsec), self.tcs_pa, self.inst_params, remote_catalog=False, cull_cat=False)
-             self.ra_off = ra_off
-             self.dec_off = dec_off
-            
         self.defocus = (math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))/100)**2
         self.log(f"defocus {self.defocus}")
-
+        tcs_coord_current = await self._tcs.get_position_j2000()
+        separation = self.tcs_coord.separation(tcs_coord_current)
+        self.log(f"separation {separation.arcminute }")
+        if separation.arcminute > 18:
+            self.tcs_coord = tcs_coord_current
+            self.guide_stars = find_guide_stars(self.tcs_coord, self.tcs_pa, self.inst_params, remote_catalog=True)
+        else:    
+            self.guide_stars = find_guide_stars(tcs_coord_current, self.tcs_pa, self.inst_params, remote_catalog=False, cull_cat=False)
+#        self.guide_stars = find_guide_stars(tcs_coord_current, self.tcs_pa, self.inst_params, remote_catalog=False, cull_cat=False)
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,
                                     gmag=self.guide_stars.mags,
@@ -228,9 +240,6 @@ class SkymakerCamera(
                                     seeing_arcsec=self.seeing_arcsec,
                                     sky_flux=self.sky_flux,
                                     defocus=self.defocus)
-
-
-#    data = create_synthetic_image(self.tcs_coord, self.tcs_pa, self.inst_params, self.guide_stars)
 
     async def _expose_internal(self, exposure, **kwargs):
 

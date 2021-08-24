@@ -40,14 +40,6 @@ class Client(AMQPClient):
     def is_connected(self):
         return self.connection and self.connection.connection is not None
 
-    async def connect(self):  
-        """ Connect
-        :param name : Clu RabbitMQ name.
-        :type name : str
-        """
-        if not self.is_connected():
-            await self.start()
-
 
     async def client_send_command_blocking(self, cmd: str, *args):
         print(self.name)

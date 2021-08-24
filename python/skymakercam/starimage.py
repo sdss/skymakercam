@@ -16,6 +16,7 @@ from astropy.coordinates import SkyCoord  # High-level coordinates
 from skymakercam.coords import *
 
 
+
 class Guidestars:
     def __init__(self, ras, decs, dd_x_mm, dd_y_mm, chip_xxs, chip_yys, mags, cats2):
         self.ras = ras

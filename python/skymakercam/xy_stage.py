@@ -41,13 +41,6 @@ class Client(AMQPClient):
         return self.connection and self.connection.connection is not None
 
 
-    async def connect(self):  
-        """ Connect
-        """
-        if not self.is_connected():
-            await self.start()
-
-
     async def client_send_command_blocking(self, cmd: str, *args):
         future =  await self.send_command(self.svc_name, cmd, *args)
         return await future

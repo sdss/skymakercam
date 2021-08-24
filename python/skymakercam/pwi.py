@@ -11,6 +11,9 @@ from clu.model import Model
 import logging
 import json
 
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+
 
 class Client(AMQPClient):
     """ Simple Focuser
@@ -39,15 +42,6 @@ class Client(AMQPClient):
         return self.connection and self.connection.connection is not None
 
 
-    async def connect(self):  
-        """ Connect
-        :param name : Clu RabbitMQ name.
-        :type name : str
-        """
-        if not self.is_connected():
-            await self.start()
-
-
     async def client_send_command_blocking(self, cmd: str, *args):
         future =  await self.send_command(self.name, cmd, *args)
         return await future
@@ -62,3 +56,8 @@ class Client(AMQPClient):
         assert(cmd.status == CommandStatus.DONE)
         return cmd.replies[-2].body
         
+    async def get_position_j2000(self):
+        status = await self.status()
+        ra0 = status['ra_j2000_hours']
+        dec0 = status['dec_j2000_degs']
+        return SkyCoord(ra=ra0*u.hour, dec=dec0*u.deg)

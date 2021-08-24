@@ -5,9 +5,9 @@
 # @Filename: plot_skymakercam.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
-# poetry run container_start --name test.xy.stage
+# # poetry run container_start --name test.xy.stage
 # poetry run container_start --name lvm.all
-#  poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
+# poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
 
 
 import argparse
@@ -29,8 +29,6 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
         cs.logger.log(logging.DEBUG, f"config {cs.list_available_cameras()}")
 
     exp = await cam.expose(exptime, camname)
-#    plt.title(f"skymaker cam {camname}", fontweight ="bold")
-    
     
     p = PlotIt(rebin(exp.data, binning), guiderect, logger=cs.logger.log)
   
