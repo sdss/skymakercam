@@ -42,6 +42,18 @@ class Client(AMQPClient):
         return self.connection and self.connection.connection is not None
 
 
+<<<<<<< HEAD
+=======
+    async def start(self):  
+        """ Connect
+        :param name : Clu RabbitMQ name.
+        :type name : str
+        """
+        if not self.is_connected():
+            await self.start()
+
+
+>>>>>>> b6ab7fd41529af924f3631600ad6b01eb2f85975
     async def client_send_command_blocking(self, cmd: str, *args):
         future =  await self.send_command(self.name, cmd, *args)
         return await future
@@ -50,6 +62,11 @@ class Client(AMQPClient):
     async def client_send_command_async(self, cmd: str, *args):
         return await self.send_command(self.name, cmd, *args)
 
+
+    async def connect(self):
+        cmd = await self.client_send_command_blocking('connect')
+        assert(cmd.status == CommandStatus.DONE)
+        return cmd.replies[-2].body
 
     async def status(self):
         cmd = await self.client_send_command_blocking('status')

@@ -127,11 +127,9 @@ class SkymakerCamera(
 
 
         self._tcs = Telescope(self.config_get('tcs', None))
-
-        #ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
-        #dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
-        #self.tcs_coord = SkyCoord(ra=ra0, dec=dec0, unit="deg")
-        self.tcs_coord = None
+        ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
+        dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
+        self.tcs_coord = SkyCoord(ra=ra0, dec=dec0, unit="deg")
         self.tcs_pa = 0
         self.ra_off = 0.0
         self.dec_off = 0.0
@@ -188,15 +186,13 @@ class SkymakerCamera(
         if not self._tcs.is_connected():
             await self._tcs.start()
 
-#        self.log(f"{await self._tcs.status()}")
-
         return True
 
     async def _disconnect_internal(self):
         """Close connection to camera.
         """
-        self.tcs = None
-        self.focus_stage.disconnect()
+        self.tcs.stop()
+        self.focus_stage.stop()
 
     def _status_internal(self):
         return {"temperature": self.temperature, "cooler": 10.0}

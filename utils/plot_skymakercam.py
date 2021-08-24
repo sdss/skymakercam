@@ -5,8 +5,16 @@
 # @Filename: plot_skymakercam.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+<<<<<<< HEAD
 # # poetry run container_start --name test.xy.stage
 # poetry run container_start --name lvm.all
+=======
+# poetry run container_start --name test.xy.stage (depricated)
+
+
+# poetry run container_start --name lvm.all
+# poetry run container_start --name=lvm.sci.pwi
+>>>>>>> b6ab7fd41529af924f3631600ad6b01eb2f85975
 # poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
 
 
