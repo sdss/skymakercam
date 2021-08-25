@@ -45,10 +45,10 @@ sep = ">=1.2"
 numpy = ">=1.0"
 scipy = ">=1.7"
 scikit_image = ">=0.18"
-
 PyQt5 = ">=5.14"
 sdss-clu = ">=1.2.0"
 sdss-basecam = ">= 0.5"
+keyboard = ">0.13"
 
 [tool.poetry.dev-dependencies]
 ipython = ">=7.11.0"

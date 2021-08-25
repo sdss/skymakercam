@@ -5,8 +5,11 @@
 # @Filename: plot_skymakercam.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
+# from lvmtan run:
 # poetry run container_start --name lvm.all
+# from lvmpwi run:
 # poetry run container_start --name=lvm.sci.pwi
+# from skymakercam run:
 # poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
 
 
@@ -16,9 +19,14 @@ import sys
 import logging
 import time
 
-from plotit import *
+from plotit import PlotIt
+from keyreader import KeyReader
 
-from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio
+from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio, rebin
+
+from skymakercam.actor.focus_stage import Client as FocusStage
+from skymakercam.actor.pwi import Client as Telescope
+
 
 async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, config="../etc/cameras.yaml"):
 
@@ -26,16 +34,40 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
     cam = await cs.add_camera(name=camname, uid=cs._config[camname]["uid"])
 
     if verb:
-        cs.logger.log(logging.DEBUG, f"config {cs.list_available_cameras()}")
+        cs.logger.log(logging.DEBUG, f"cameras {cs.list_available_cameras()}")
+        cs.logger.log(logging.DEBUG, f"config {cs._config[camname]['tcs']}")
 
-    exp = await cam.expose(exptime, camname)
+    tcs = Telescope(cs._config[camname]['tcs'])
+    await tcs.start()
+    await tcs.status()
+    await tcs.connect()
+    await tcs.trackin()
     
-    p = PlotIt(rebin(exp.data, binning), guiderect, logger=cs.logger.log)
-  
-    while(True):
-       exp = await cam.expose(exptime, "LAB TEST")
-       p.update(rebin(exp.data, binning))
 
+    focus_stage = FocusStage(cs._config[camname]['focus_stage'], tcs.amqpc)
+    await focus_stage.start()
+    await focus_stage.getDeviceEncoderPosition()
+    await focus_stage.movetohome()
+    
+    exp = await cam.expose(exptime, camname)
+    p = PlotIt(rebin(exp.data, binning), guiderect, logger=cs.logger.log)
+
+    keyreader = KeyReader(echo=False, block=False)
+    while(True):
+        find_objects = False
+        
+        key = keyreader.getch()
+        if key == 'q':
+            cs.logger.log(logging.DEBUG, f"Goodbye and thanks for all the fish.")
+            break
+        elif key == 'o':
+            cs.logger.log(logging.DEBUG, f"Find objects.")
+            find_objects = True
+        elif key:
+            cs.logger.log(logging.DEBUG, f"-{key}-")
+
+        exp = await cam.expose(exptime, "LAB TEST")
+        p.update(rebin(exp.data, binning), find_objects)
 
 def main():
 

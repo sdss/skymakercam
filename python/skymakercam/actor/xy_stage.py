@@ -5,14 +5,15 @@
 # @Filename: camera.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
-from clu import AMQPClient, AMQPActor, command_parser
-from clu.tools import CommandStatus
-from clu.model import Model
-import logging
-import json
+#from clu import AMQPClient, AMQPActor, command_parser
+#from clu.tools import CommandStatus
+#from clu.model import Model
+#import logging
+#import json
 
+from skymakercam.actor.base_client import BaseClient, AMQPClient, CommandStatus, command_parser
 
-class Client(AMQPClient):
+class Client(BaseClient):
     """ Simple Focuser
         :param name : Clu RabbitMQ name.
         :type name : str
@@ -26,30 +27,17 @@ class Client(AMQPClient):
         host: str = "localhost",
         port: int = 5672,
         ssl: bool = False,
+        amqpc: AMQPClient = None
     ):
-        self.svc_name = name
-        super().__init__(name=name + ".client", 
-                         models=[name],
+        super().__init__(name=name, 
                          user=user,
                          password=password,
                          host=host,
                          port=port,
                          ssl=ssl,
+                         amqpc=amqpc
         )
     
-    def is_connected(self):
-        return self.connection and self.connection.connection is not None
-
-
-    async def client_send_command_blocking(self, cmd: str, *args):
-        future =  await self.send_command(self.svc_name, cmd, *args)
-        return await future
-
-
-    async def client_send_command_async(self, cmd: str, *args):
-        return await self.send_command(self.svc_name, cmd, *args)
-
-
     async def isReachable(self):
         cmd = await self.client_send_command_blocking('isreachable')
         assert(cmd.status == CommandStatus.DONE)

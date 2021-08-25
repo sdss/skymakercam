@@ -14,7 +14,7 @@ import math
 
 from logging import INFO, WARNING
 
-import numpy
+import numpy as np
 import json
 
 import astropy.time
@@ -25,7 +25,7 @@ from clu.tools import CommandStatus
 from clu.model import Model
 
 from basecam import BaseCamera, CameraSystem, Exposure
-from basecam.actor import CameraActor
+#from basecam.actor import CameraActor
 from basecam.events import CameraEvent
 from basecam.mixins import CoolerMixIn, ExposureTypeMixIn, ImageAreaMixIn, ShutterMixIn
 from basecam.notifier import EventListener
@@ -33,9 +33,9 @@ from basecam.utils import cancel_task
 
 
 from skymakercam.params import load as params_load
-from skymakercam.focus_stage import Client as FocusStage
-from skymakercam.xy_stage import Client as XYStage
-from skymakercam.pwi import Client as Telescope
+from skymakercam.actor.focus_stage import Client as FocusStage
+from skymakercam.actor.xy_stage import Client as XYStage
+from skymakercam.actor.pwi import Client as Telescope
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
@@ -48,6 +48,13 @@ __all__ = ['SkymakerCameraSystem', 'SkymakerCamera']
 #import re
 #def to_camel_case(text):
     #return re.sub('[.](.)', lambda x: x.group(1).upper(), text.capitalize())
+
+
+def rebin(arr, bin):
+    new_shape=[int(arr.shape[0]/bin), int(arr.shape[1]/bin)]
+    shape = (new_shape[0], arr.shape[0] // new_shape[0],
+             new_shape[1], arr.shape[1] // new_shape[1])
+    return arr.reshape(shape).sum(-1).sum(1)
 
 EXPOSURE_DIR = tempfile.TemporaryDirectory()
 
@@ -127,16 +134,15 @@ class SkymakerCamera(
 
 
         self._tcs = Telescope(self.config_get('tcs', None))
-        ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
-        dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
-        self.tcs_coord = SkyCoord(ra=ra0, dec=dec0, unit="deg")
+        self.tcs_coord = None
         self.tcs_pa = 0
         self.ra_off = 0.0
         self.dec_off = 0.0
 
-        self._ra_stage = FocusStage('lvm.skye.foc')
-        self._dec_stage = FocusStage('lvm.skyw.foc')
-        self._xy_stage = XYStage(self.config_get('xy_stage', None))
+        self._ra_stage = FocusStage('lvm.skye.foc', amqpc=self._tcs.amqpc)
+
+        self._dec_stage = FocusStage('lvm.skyw.foc', amqpc=self._tcs.amqpc)
+        self._xy_stage = XYStage(self.config_get('xy_stage', None), amqpc=self._tcs.amqpc)
         
         self.guide_stars = None
         
@@ -214,19 +220,19 @@ class SkymakerCamera(
             # super crowded field
             #ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
             #dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
-            self.tcs_coord = await self._tcs.get_position_j2000()
-            self.guide_stars = find_guide_stars(self.tcs_coord, self.tcs_pa, self.inst_params, remote_catalog=True)
+            self.tcs_coord, self.tcs_pa = await self._tcs.get_position_j2000()
+            self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=True)
 
         self.defocus = (math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))/100)**2
         self.log(f"defocus {self.defocus}")
-        tcs_coord_current = await self._tcs.get_position_j2000()
+        tcs_coord_current, tcs_pa_current = await self._tcs.get_position_j2000()
         separation = self.tcs_coord.separation(tcs_coord_current)
         self.log(f"separation {separation.arcminute }")
         if separation.arcminute > 18:
-            self.tcs_coord = tcs_coord_current
-            self.guide_stars = find_guide_stars(self.tcs_coord, self.tcs_pa, self.inst_params, remote_catalog=True)
+            self.tcs_coord, self.tcs_pa = tcs_coord_current, tcs_pa_current
+            self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=True)
         else:    
-            self.guide_stars = find_guide_stars(tcs_coord_current, self.tcs_pa, self.inst_params, remote_catalog=False, cull_cat=False)
+            self.guide_stars = find_guide_stars(tcs_coord_current, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=False, cull_cat=False)
 #        self.guide_stars = find_guide_stars(tcs_coord_current, self.tcs_pa, self.inst_params, remote_catalog=False, cull_cat=False)
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,
