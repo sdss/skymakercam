@@ -35,20 +35,20 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
 
     if verb:
         cs.logger.log(logging.DEBUG, f"cameras {cs.list_available_cameras()}")
-        cs.logger.log(logging.DEBUG, f"config {cs._config[camname]['tcs']}")
+#        cs.logger.log(logging.DEBUG, f"config {cs._config[camname]['tcs']}")
 
     tcs = Telescope(cs._config[camname]['tcs'])
     await tcs.start()
-    await tcs.status()
+    cs.logger.log(logging.DEBUG, f"tcs {await tcs.status()}")
     await tcs.connect()
-    await tcs.trackin()
+    await tcs.setTrackingOn(True)
+
+    # we do reuse the AMQPClient
+    focus_stage = FocusStage(cs._config[camname]['focus_stage'], amqpc=tcs.amqpc)
+    await focus_stage.getDeviceEncoderPosition()
+    await focus_stage.moveToHome()
     
 
-    focus_stage = FocusStage(cs._config[camname]['focus_stage'], tcs.amqpc)
-    await focus_stage.start()
-    await focus_stage.getDeviceEncoderPosition()
-    await focus_stage.movetohome()
-    
     exp = await cam.expose(exptime, camname)
     p = PlotIt(rebin(exp.data, binning), guiderect, logger=cs.logger.log)
 

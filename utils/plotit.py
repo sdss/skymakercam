@@ -94,7 +94,7 @@ class PlotIt:
             xy, yy = np.linspace(xc, xc, self.rectw), np.linspace(y0, y1, self.rectw)
             
             if not update:
-                print(f"object {idx}: xy = [{xc}, {yc}]: {p}")
+                #print(f"object {idx}: xy = [{xc}, {yc}]: {p}")
                 r = Rectangle(xy=(xc-self.rectw/2, yc-self.rectw/2), width=self.rectw, height=self.rectw)
                 r.set_facecolor('none')
                 r.set_edgecolor('blue')

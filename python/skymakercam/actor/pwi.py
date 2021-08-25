@@ -53,3 +53,8 @@ class Client(BaseClient):
         ra0 = status['ra_j2000_hours']
         dec0 = status['dec_j2000_degs']
         return SkyCoord(ra=ra0*u.hour, dec=dec0*u.deg), status['field_angle_here_degs']
+
+    async def setTrackingOn(self, on:bool):
+        cmd = await self.client_send_command_blocking('tracking-on' if on else 'tracking-off')
+        assert(cmd.status == CommandStatus.DONE)
+        

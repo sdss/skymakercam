@@ -33,9 +33,8 @@ from basecam.utils import cancel_task
 
 
 from skymakercam.params import load as params_load
-from skymakercam.actor.focus_stage import Client as FocusStage
-from skymakercam.actor.xy_stage import Client as XYStage
 from skymakercam.actor.pwi import Client as Telescope
+from skymakercam.actor.focus_stage import Client as FocusStage
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
@@ -139,15 +138,10 @@ class SkymakerCamera(
         self.ra_off = 0.0
         self.dec_off = 0.0
 
-        self._ra_stage = FocusStage('lvm.skye.foc', amqpc=self._tcs.amqpc)
-
-        self._dec_stage = FocusStage('lvm.skyw.foc', amqpc=self._tcs.amqpc)
-        self._xy_stage = XYStage(self.config_get('xy_stage', None), amqpc=self._tcs.amqpc)
-        
         self.guide_stars = None
         
-        self._focus_stage = FocusStage(self.config_get('focus_stage', None))
-        self.defocus = self.config_get('default.defocus', 0)
+        self._focus_stage = FocusStage(self.config_get('focus_stage', None), amqpc=self._tcs.amqpc)
+#        self.defocus = self.config_get('default.defocus', 0)
         self.sky_flux = self.config_get('default.sky_flux', 15)
         self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
         self.exp_time = self.config_get('default.exp_time',5)
@@ -174,21 +168,6 @@ class SkymakerCamera(
 
     async def _connect_internal(self, **connection_params):
         self.log(f"connecting ...")
-        if not self._focus_stage.is_connected():
-            await self._focus_stage.start()
-
-        await self._focus_stage.getDeviceEncoderPosition(unit='UM')
-
-        if not self._ra_stage.is_connected():
-            await self._ra_stage.start()
-
-        await self._ra_stage.getDeviceEncoderPosition()
-
-        if not self._dec_stage.is_connected():
-            await self._dec_stage.start()
-
-        await self._dec_stage.getDeviceEncoderPosition()
-
         if not self._tcs.is_connected():
             await self._tcs.start()
 
@@ -225,6 +204,7 @@ class SkymakerCamera(
 
         self.defocus = (math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))/100)**2
         self.log(f"defocus {self.defocus}")
+
         tcs_coord_current, tcs_pa_current = await self._tcs.get_position_j2000()
         separation = self.tcs_coord.separation(tcs_coord_current)
         self.log(f"separation {separation.arcminute }")
@@ -233,7 +213,7 @@ class SkymakerCamera(
             self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=True)
         else:    
             self.guide_stars = find_guide_stars(tcs_coord_current, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=False, cull_cat=False)
-#        self.guide_stars = find_guide_stars(tcs_coord_current, self.tcs_pa, self.inst_params, remote_catalog=False, cull_cat=False)
+            
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,
                                     gmag=self.guide_stars.mags,

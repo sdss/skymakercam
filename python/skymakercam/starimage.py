@@ -206,7 +206,7 @@ def make_synthetic_image(chip_x, chip_y, gmag, inst, exp_time=5, seeing_arcsec=3
     y_position = y_position[selection_on_chip]
     gmag = gmag[selection_on_chip]
     
-    print("{} of {} stars are on the chip.".format(np.sum(selection_on_chip),len(selection_on_chip)))
+    #print("{} of {} stars are on the chip.".format(np.sum(selection_on_chip),len(selection_on_chip)))
     
     #gaia_legend_mag = np.arange(17,4,mag_lim_index)
     #gaia_legend_flux= 10**(-(np.array(gaia_legend_mag)+zp)/2.5)

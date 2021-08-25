@@ -7,7 +7,7 @@
 
 import uuid
 
-from clu import AMQPClient, AMQPActor, command_parser
+from clu import AMQPClient, command_parser
 from clu.tools import CommandStatus
 from clu.model import Model
 import logging
@@ -32,9 +32,7 @@ class BaseClient():
         amqpc: AMQPClient = None
     ):
         self.name = name
-        if amqpc:
-            self.amqpc = amqpc
-        else:
+        if not amqpc:
             self.amqpc = AMQPClient(name=f"{name}.client-{uuid.uuid4().hex[:8]}", 
                                 models=[name],
                                 user=user,
@@ -42,10 +40,13 @@ class BaseClient():
                                 host=host,
                                 port=port,
                                 ssl=ssl,
-        )
+            )
+        else:
+            self.amqpc = amqpc
+            
         
     async def start(self):
-        return await self.amqpc.start()
+        await self.amqpc.start()
         
     
     def is_connected(self):
