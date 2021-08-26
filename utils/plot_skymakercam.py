@@ -24,7 +24,8 @@ from keyreader import KeyReader
 
 from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio, rebin
 
-from skymakercam.actor.focus_stage import Client as FocusStage
+from skymakercam.actor.x_stage import Client as FocusStage
+from skymakercam.actor.trajectory import Client as KMirror
 from skymakercam.actor.pwi import Client as Telescope
 
 
@@ -47,6 +48,9 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
     focus_stage = FocusStage(cs._config[camname]['focus_stage'], amqpc=tcs.amqpc)
     await focus_stage.getDeviceEncoderPosition()
     await focus_stage.moveToHome()
+    
+    # we do reuse the AMQPClient
+    kmirror = KMirror(cs._config[camname]['kmirror'], amqpc=tcs.amqpc)
     
 
     exp = await cam.expose(exptime, camname)

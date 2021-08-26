@@ -34,7 +34,8 @@ from basecam.utils import cancel_task
 
 from skymakercam.params import load as params_load
 from skymakercam.actor.pwi import Client as Telescope
-from skymakercam.actor.focus_stage import Client as FocusStage
+from skymakercam.actor.x_stage import Client as FocusStage
+from skymakercam.actor.trajectory import Client as KMirror
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
@@ -140,13 +141,16 @@ class SkymakerCamera(
 
         self.guide_stars = None
         
+        # we do reuse the AMQPClient
         self._focus_stage = FocusStage(self.config_get('focus_stage', None), amqpc=self._tcs.amqpc)
-#        self.defocus = self.config_get('default.defocus', 0)
         self.sky_flux = self.config_get('default.sky_flux', 15)
         self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
         self.exp_time = self.config_get('default.exp_time',5)
         
-
+        # we do reuse the AMQPClient
+        self._kmirror = KMirror(self.config_get('kmirror', None), amqpc=self._tcs.amqpc)
+        self.kmirror_angle = 0.
+        
         self._shutter_position = False
 
         self.temperature = 25
@@ -170,14 +174,14 @@ class SkymakerCamera(
         self.log(f"connecting ...")
         if not self._tcs.is_connected():
             await self._tcs.start()
-
+        self.tcs_coord, self.tcs_pa = await self._tcs.get_position_j2000()
+        
         return True
 
     async def _disconnect_internal(self):
         """Close connection to camera.
         """
         self.tcs.stop()
-        self.focus_stage.stop()
 
     def _status_internal(self):
         return {"temperature": self.temperature, "cooler": 10.0}
@@ -195,24 +199,25 @@ class SkymakerCamera(
 
     async def create_synthetic_image(self):
 
-        if not self.guide_stars:
-            # super crowded field
-            #ra0  =  (13+26./60+47.24/3600)*15   #13:26:47.24
-            #dec0 = -(47+28./60+46.45/3600)  #−47:28:46.
-            self.tcs_coord, self.tcs_pa = await self._tcs.get_position_j2000()
-            self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=True)
+        #if not self.guide_stars:
+            #self.tcs_coord, self.tcs_pa = await self._tcs.get_position_j2000()
+            #self.kmirror_angle = await self._kmirror.getDeviceEncoderPosition(unit='DEG')
+            #self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=True)
 
         self.defocus = (math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))/100)**2
         self.log(f"defocus {self.defocus}")
 
-        tcs_coord_current, tcs_pa_current = await self._tcs.get_position_j2000()
+        self.kmirror_angle = await self._kmirror.getDeviceEncoderPosition(unit='DEG')
+        self.log(f"kmirror angle (deg): {self.kmirror_angle}")
+
+        tcs_coord_current, self.tcs_pa = await self._tcs.get_position_j2000()
         separation = self.tcs_coord.separation(tcs_coord_current)
         self.log(f"separation {separation.arcminute }")
-        if separation.arcminute > 18:
-            self.tcs_coord, self.tcs_pa = tcs_coord_current, tcs_pa_current
-            self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=True)
+        if separation.arcminute > 18 or not self.guide_stars:
+            self.tcs_coord = tcs_coord_current
+            self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.kmirror_angle), self.inst_params, remote_catalog=True)
         else:    
-            self.guide_stars = find_guide_stars(tcs_coord_current, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=False, cull_cat=False)
+            self.guide_stars = find_guide_stars(tcs_coord_current, np.deg2rad(self.kmirror_angle), self.inst_params, remote_catalog=False, cull_cat=False)
             
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,

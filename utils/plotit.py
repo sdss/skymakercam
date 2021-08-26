@@ -31,12 +31,11 @@ class PlotIt:
 #        plt_use('TkAgg')
         plt_use('Qt5Agg')
         
-        self.fig = plt.figure(figsize=(16, 9))
-        self.fig.tight_layout()
+        self.fig = plt.figure(figsize=(17, 8))
         
         self.ax_img = plt.subplot2grid((3,4), (0 ,1), rowspan=3, colspan=3)
         divider = make_axes_locatable(self.ax_img)
-        cax_r = divider.append_axes('right', size='5%', pad=0.05)
+        cax_r = divider.append_axes('right', size='3%', pad=0.05)
         
         self.mean, self.sigma = np.mean(data), np.std(data)
         self.lperc, self.uperc = np.percentile(data, 0.5), np.percentile(data, 99.8)
@@ -55,6 +54,7 @@ class PlotIt:
         self.plot_objects()
         self.plot_star_cuts(update=False)
         
+        self.fig.tight_layout()
         plt.pause(.5)
 
     def sep_objects(self):
@@ -127,7 +127,7 @@ class PlotIt:
         else:
             self.plot_star_cuts()
             
-        #plt.pause(.5)
+        self.fig.tight_layout()
         self.fig.canvas.draw_idle()
         self.fig.canvas.start_event_loop(0.001)
 
