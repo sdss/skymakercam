@@ -5,9 +5,13 @@
 [![Travis (.org)](https://img.shields.io/travis/wasndas/skymakercam)](https://travis-ci.org/wasndas/skymakercam)
 [![codecov](https://codecov.io/gh/wasndas/skymakercam/branch/main/graph/badge.svg)](https://codecov.io/gh/wasndas/skymakercam)
 
-Skymaker camera with sdss-basecam
+Skymaker camera based on sdss-basecam
 
+    # from lvmtan run:
+    poetry run container_start --name lvm.all
+    # from lvmpwi run:
+    poetry run container_start --name=lvm.sci.pwi --simulator
+    # from skymakercam run:
+    poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
 
-https://sep.readthedocs.io/en/v1.1.x/tutorial.html
-https://docs.python.org/3/library/asyncio-task.html
 
