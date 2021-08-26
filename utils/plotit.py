@@ -28,7 +28,8 @@ class PlotIt:
         self.rectw = rectw
         self.log = logger
         
-        plt_use('TkAgg')
+#        plt_use('TkAgg')
+        plt_use('Qt5Agg')
         
         self.fig = plt.figure(figsize=(16, 9))
         self.fig.tight_layout()
@@ -126,5 +127,7 @@ class PlotIt:
         else:
             self.plot_star_cuts()
             
-        plt.pause(.5)
+        #plt.pause(.5)
+        self.fig.canvas.draw_idle()
+        self.fig.canvas.start_event_loop(0.001)
 
