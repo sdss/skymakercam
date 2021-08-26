@@ -5,7 +5,7 @@
 [![Travis (.org)](https://img.shields.io/travis/wasndas/skymakercam)](https://travis-ci.org/wasndas/skymakercam)
 [![codecov](https://codecov.io/gh/wasndas/skymakercam/branch/main/graph/badge.svg)](https://codecov.io/gh/wasndas/skymakercam)
 
-Skymaker camera with sdss-basecam
+Skymaker camera based on sdss-basecam
 
     # from lvmtan run:
     poetry run container_start --name lvm.all
