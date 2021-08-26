@@ -8,7 +8,7 @@
 # from lvmtan run:
 # poetry run container_start --name lvm.all
 # from lvmpwi run:
-# poetry run container_start --name=lvm.sci.pwi
+# poetry run container_start --name=lvm.sci.pwi --simulator
 # from skymakercam run:
 # poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
 
