@@ -7,11 +7,16 @@
 
 Skymaker camera based on sdss-basecam
 
-    # from [lvmtan](https://github.com/sdss/lvmtan) run:
+## from [lvmtan](https://github.com/sdss/lvmtan) run:
+
     poetry run container_start --name lvm.all
-    # from [lvmpwi](https://github.com/sdss/lvmpwi) run:
+
+## from [lvmpwi](https://github.com/sdss/lvmpwi) run:
+
     poetry run container_start --name=lvm.sci.pwi --simulator
-    # from skymakercam run:
+
+## from skymakercam run:
+
     poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
 
 
