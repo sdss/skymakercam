@@ -38,6 +38,7 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
         cs.logger.log(logging.DEBUG, f"cameras {cs.list_available_cameras()}")
 #        cs.logger.log(logging.DEBUG, f"config {cs._config[camname]['tcs']}")
 
+    # client interfaces to TCS, focus stage and kmirror are optional and not needed for skymakercam - it connects internally to them.
     tcs = Telescope(cs._config[camname]['tcs'])
     await tcs.start()
     cs.logger.log(logging.DEBUG, f"tcs {await tcs.status()}")
@@ -104,5 +105,4 @@ def main():
             
 if __name__ == '__main__':
 
-    #da = DataAnalysis()
     main()
