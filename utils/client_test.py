@@ -9,9 +9,39 @@ import uuid
 import sys
 
 from clu import AMQPClient, CommandStatus
-from skymakercam.client import Proxy, gather, unpack
+from skymakercam.client import Proxy, invoke, unpack
 
 import asyncio
+
+
+async def test_tasks():
+    
+    amqpc = AMQPClient(name=f"{sys.argv[0]}.client-{uuid.uuid4().hex[:8]}")
+    await amqpc.start()
+    
+    lvm_sci_foc=Proxy("lvm.sci.foc", amqpc)
+    lvm_skye_foc=Proxy("lvm.skye.foc", amqpc)
+    lvm_skyw_foc=Proxy("lvm.skyw.foc", amqpc)
+    lvm_spec_foc=Proxy("lvm.spec.foc", amqpc)
+    
+    
+    ret = await invoke(
+            lvm_sci_foc.moveToHome(),
+            lvm_skye_foc.moveToHome(),
+            lvm_skyw_foc.moveToHome(),
+            lvm_spec_foc.moveToHome(),
+          )
+    print(ret)
+    
+    ret = await invoke(
+                lvm_sci_foc.moveToLimit(-1),
+                lvm_skye_foc.moveToLimit(-1),
+                lvm_skyw_foc.moveToLimit(-1),
+                lvm_spec_foc.moveToLimit(-1),
+            )
+    print(ret)
+
+asyncio.run(test_tasks())
 
 
 async def test_single_param_return():
@@ -24,14 +54,16 @@ async def test_single_param_return():
     print(sys.argv[0])
         
     print(f'#2: {await unpack(lvm_sci_foc.isReachable())}')
-    print(f'#2: {await gather(lvm_sci_foc.getPosition())}')
-    pos, unit=await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))
+    print(f'#2: {await invoke(lvm_sci_foc.getPosition())}')
+    pos, unit = await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))
+    print(f'#2: {pos, unit}')
+
+    pos = await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))
     print(f'#2: {pos}')
 
 
 asyncio.run(test_single_param_return())
 
-exit(0)
 
 async def test_single_param_return():
     
@@ -41,7 +73,7 @@ async def test_single_param_return():
     
     lvm_sci_foc=Proxy(consumer, amqpc)
     
-    print(f'#1: {(await gather(lvm_sci_foc.isReachable()))["Reachable"]}')
+    print(f'#1: {(await invoke(lvm_sci_foc.isReachable()))["Reachable"]}')
     
     print(f'#2: {await unpack(lvm_sci_foc.isReachable())}')
     print(f'#2: {await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))}')
@@ -49,7 +81,6 @@ async def test_single_param_return():
     
 asyncio.run(test_single_param_return())
 
-exit(0)
 
 async def test_callback_and_blocking():
     
@@ -105,11 +136,11 @@ async def test_callback_and_gather():
     lvm_spec_foc=Proxy("lvm.spec.foc", amqpc)
     
     
-    ret = await gather(
-            lvm_sci_foc.moveToHome(blocking=False),
-            lvm_skye_foc.moveToHome(blocking=False),
-            lvm_skyw_foc.moveToHome(blocking=False),
-            lvm_spec_foc.moveToHome(blocking=False),
+    ret = await asyncio.gather(
+            await lvm_sci_foc.moveToHome(blocking=False),
+            await lvm_skye_foc.moveToHome(blocking=False),
+            await lvm_skyw_foc.moveToHome(blocking=False),
+            await lvm_spec_foc.moveToHome(blocking=False),
           )
     print(ret)
     

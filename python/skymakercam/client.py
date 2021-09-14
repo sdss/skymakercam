@@ -65,32 +65,30 @@ class Proxy:
         return ProxyMethod(self._amqpc, self._consumer, command)
     
 
-async def gather(*argv):
+async def invoke(*argv):
     if len(argv) > 1:
-        ret = await asyncio.gather(*[await cmd for cmd in argv])
+        ret = await asyncio.gather(*[asyncio.create_task(cmd) for cmd in argv])
+        for r in ret:
+            if r.status.did_fail:
+                print("throw") # FixMe: add an exception
         return [r.replies[-1].body for r in ret]
     else:
         ret = await argv[0]
         if ret.status.did_fail:
-            print("failed") # FixMe: add an exception
+            print("throw") # FixMe: add an exception
+            return ret.replies[-1].body
         else:
             return ret.replies[-1].body
     
 async def unpack(cmd, key: str = None):
-    ret = await cmd
-    #print(ret)
-    #print(ret.status)
-    #print(ret.status.did_fail)
-    if ret.status.did_fail:
-        print("failed") # FixMe: add an exception
+    ret = await invoke(cmd)
+    if key:
+        return ret["key"]
     else:
-        if key:
-            return ret.replies[-1].body["key"]
-        else:
 #            print(type(list(ret.replies[-1].body.values())))
-            ret = list(ret.replies[-1].body.values())
-            if len(ret) > 1:
-                return ret
-            else:
-                return ret[0]
+        ret = list(ret.values())
+        if len(ret) > 1:
+            return ret
+        else:
+            return ret[0]
 
