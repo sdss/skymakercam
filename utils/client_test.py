@@ -14,36 +14,6 @@ from skymakercam.client import Proxy, invoke, unpack
 import asyncio
 
 
-async def test_tasks():
-    
-    amqpc = AMQPClient(name=f"{sys.argv[0]}.client-{uuid.uuid4().hex[:8]}")
-    await amqpc.start()
-    
-    lvm_sci_foc=Proxy("lvm.sci.foc", amqpc)
-    lvm_skye_foc=Proxy("lvm.skye.foc", amqpc)
-    lvm_skyw_foc=Proxy("lvm.skyw.foc", amqpc)
-    lvm_spec_foc=Proxy("lvm.spec.foc", amqpc)
-    
-    
-    ret = await invoke(
-            lvm_sci_foc.moveToHome(),
-            lvm_skye_foc.moveToHome(),
-            lvm_skyw_foc.moveToHome(),
-            lvm_spec_foc.moveToHome(),
-          )
-    print(ret)
-    
-    ret = await invoke(
-                lvm_sci_foc.moveToLimit(-1),
-                lvm_skye_foc.moveToLimit(-1),
-                lvm_skyw_foc.moveToLimit(-1),
-                lvm_spec_foc.moveToLimit(-1),
-            )
-    print(ret)
-
-asyncio.run(test_tasks())
-
-
 async def test_single_param_return():
     
     consumer = "lvm.sci.foc"
@@ -56,7 +26,7 @@ async def test_single_param_return():
     print(f'#2: {await unpack(lvm_sci_foc.isReachable())}')
     print(f'#2: {await invoke(lvm_sci_foc.getPosition())}')
     pos, unit = await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))
-    print(f'#2: {pos, unit}')
+    print(f'#2: {pos}, {unit}')
 
     pos = await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))
     print(f'#2: {pos}')
@@ -64,6 +34,7 @@ async def test_single_param_return():
 
 asyncio.run(test_single_param_return())
 
+exit(0)
 
 async def test_single_param_return():
     
@@ -100,6 +71,34 @@ async def test_callback_and_blocking():
 
 asyncio.run(test_callback_and_blocking())
 
+async def test_tasks():
+    
+    amqpc = AMQPClient(name=f"{sys.argv[0]}.client-{uuid.uuid4().hex[:8]}")
+    await amqpc.start()
+    
+    lvm_sci_foc=Proxy("lvm.sci.foc", amqpc)
+    lvm_skye_foc=Proxy("lvm.skye.foc", amqpc)
+    lvm_skyw_foc=Proxy("lvm.skyw.foc", amqpc)
+    lvm_spec_foc=Proxy("lvm.spec.foc", amqpc)
+    
+    
+    ret = await invoke(
+            lvm_sci_foc.moveToHome(),
+            lvm_skye_foc.moveToHome(),
+            lvm_skyw_foc.moveToHome(),
+            lvm_spec_foc.moveToHome(),
+          )
+    print(ret)
+    
+    ret = await invoke(
+                lvm_sci_foc.moveToLimit(-1),
+                lvm_skye_foc.moveToLimit(-1),
+                lvm_skyw_foc.moveToLimit(-1),
+                lvm_spec_foc.moveToLimit(-1),
+            )
+    print(ret)
+
+asyncio.run(test_tasks())
 
 async def test_callback_and_parallel():
     
@@ -123,7 +122,6 @@ async def test_callback_and_parallel():
     
 
 asyncio.run(test_callback_and_parallel())
-
 
 async def test_callback_and_gather():
     

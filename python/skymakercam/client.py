@@ -70,12 +70,12 @@ async def invoke(*argv):
         ret = await asyncio.gather(*[asyncio.create_task(cmd) for cmd in argv])
         for r in ret:
             if r.status.did_fail:
-                print("throw") # FixMe: add an exception
+                print(f"throw ") # FixMe: add an exception
         return [r.replies[-1].body for r in ret]
     else:
         ret = await argv[0]
         if ret.status.did_fail:
-            print("throw") # FixMe: add an exception
+            print(f"throw ") # FixMe: add an exception
             return ret.replies[-1].body
         else:
             return ret.replies[-1].body
