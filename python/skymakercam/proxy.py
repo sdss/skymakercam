@@ -127,7 +127,8 @@ class DictObject(object):
 async def invoke(*argv, raw=False):
     """invokes one or many commands in parallel
     
-       On error it throws an exception if one of the commands fails as a dict with an exception or None for every command. For a single command it throw only an exception
+       On error it throws an exception if one of the commands fails as a dict with an exception or None for every command. 
+       For a single command it throws only an exception.
     
        Parameters
        ----------
@@ -165,7 +166,7 @@ async def invoke(*argv, raw=False):
                 return DictObject(ret.replies[-1].body)
 
 async def unpack(cmd, *argv):
-    """ invokes one command and unpacks every parameter from the body of finishinmg reply
+    """ invokes one command and unpacks every parameter from the body of the finish reply
     
         It uses pythons list unpacking mechanism PEP3132, be warned if you dont use it the correct way.
        
