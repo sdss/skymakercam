@@ -119,7 +119,7 @@ async def test_tasks():
 
 asyncio.run(test_tasks())
 
-async def test_callback_and_parallel():
+async def test_callback_and_parallel_classic():
     
     amqpc = AMQPClient(name=f"{sys.argv[0]}.client-{uuid.uuid4().hex[:8]}")
     await amqpc.start()
@@ -140,7 +140,7 @@ async def test_callback_and_parallel():
     await lvm_skye_foc_future
     
 
-asyncio.run(test_callback_and_parallel())
+asyncio.run(test_callback_and_parallel_classic())
 
 async def test_callback_and_gather_raw():
     
