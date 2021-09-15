@@ -8,9 +8,11 @@
 import asyncio
 import glob
 import os
+import sys
 import tempfile
 import pathlib
 import math
+import uuid
 
 from logging import INFO, WARNING
 
@@ -21,7 +23,7 @@ import astropy.time
 
 from sdsstools import read_yaml_file
 
-from clu.tools import CommandStatus
+from clu import AMQPClient, CommandStatus
 from clu.model import Model
 
 from basecam import BaseCamera, CameraSystem, Exposure
@@ -31,11 +33,8 @@ from basecam.mixins import CoolerMixIn, ExposureTypeMixIn, ImageAreaMixIn, Shutt
 from basecam.notifier import EventListener
 from basecam.utils import cancel_task
 
-
 from skymakercam.params import load as params_load
-from skymakercam.actor.pwi import Client as Telescope
-from skymakercam.actor.x_stage import Client as FocusStage
-from skymakercam.actor.trajectory import Client as KMirror
+from skymakercam.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
@@ -132,8 +131,9 @@ class SkymakerCamera(
             self.log(f"Creating catalog path: {self.inst_params.catalog_path}", WARNING)
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
 
+        self.amqpc = AMQPClient(name=f"{sys.argv[0]}.proxy-{uuid.uuid4().hex[:8]}")
 
-        self._tcs = Telescope(self.config_get('tcs', None))
+        self._tcs = Proxy(self.config_get('tcs', None), amqpc=self.amqpc)
         self.tcs_coord = None
         self.tcs_pa = 0
         self.ra_off = 0.0
@@ -142,13 +142,13 @@ class SkymakerCamera(
         self.guide_stars = None
         
         # we do reuse the AMQPClient
-        self._focus_stage = FocusStage(self.config_get('focus_stage', None), amqpc=self._tcs.amqpc)
+        self._focus_stage = Proxy(self.config_get('focus_stage', None), amqpc=self.amqpc)
         self.sky_flux = self.config_get('default.sky_flux', 15)
         self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
         self.exp_time = self.config_get('default.exp_time',5)
         
         # we do reuse the AMQPClient
-        self._kmirror = KMirror(self.config_get('kmirror', None), amqpc=self._tcs.amqpc)
+        self._kmirror = Proxy(self.config_get('kmirror', None), amqpc=self.amqpc)
         self.kmirror_angle = 0.
         
         self._shutter_position = False
@@ -170,18 +170,23 @@ class SkymakerCamera(
 
         self.image_namer.dirname = EXPOSURE_DIR.name
 
+    async def tcs_get_position_j2000(self):
+        status = await invoke(self._tcs.status())
+        return SkyCoord(ra=status.ra_j2000_hours*u.hour, dec=status.dec_j2000_degs*u.deg), status.field_angle_here_degs
+
+
     async def _connect_internal(self, **connection_params):
         self.log(f"connecting ...")
-        if not self._tcs.is_connected():
-            await self._tcs.start()
-        self.tcs_coord, self.tcs_pa = await self._tcs.get_position_j2000()
+        await self.amqpc.start()
+        
+        self.tcs_coord, self.tcs_pa = await self.tcs_get_position_j2000()
         
         return True
 
     async def _disconnect_internal(self):
         """Close connection to camera.
         """
-        self.tcs.stop()
+        await amqpc.stop()
 
     def _status_internal(self):
         return {"temperature": self.temperature, "cooler": 10.0}
@@ -199,18 +204,13 @@ class SkymakerCamera(
 
     async def create_synthetic_image(self):
 
-        #if not self.guide_stars:
-            #self.tcs_coord, self.tcs_pa = await self._tcs.get_position_j2000()
-            #self.kmirror_angle = await self._kmirror.getDeviceEncoderPosition(unit='DEG')
-            #self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.tcs_pa), self.inst_params, remote_catalog=True)
-
-        self.defocus = (math.fabs(await self._focus_stage.getDeviceEncoderPosition(unit='UM'))/100)**2
+        self.defocus = (math.fabs((await invoke(self._focus_stage.getDeviceEncoderPosition('UM'))).DeviceEncoderPosition )/100)**2
         self.log(f"defocus {self.defocus}")
 
-        self.kmirror_angle = await self._kmirror.getDeviceEncoderPosition(unit='DEG')
+        self.kmirror_angle = (await invoke(self._kmirror.getDeviceEncoderPosition('DEG'))).DeviceEncoderPosition
         self.log(f"kmirror angle (deg): {self.kmirror_angle}")
 
-        tcs_coord_current, self.tcs_pa = await self._tcs.get_position_j2000()
+        tcs_coord_current, self.tcs_pa = await self.tcs_get_position_j2000()
         separation = self.tcs_coord.separation(tcs_coord_current)
         self.log(f"separation {separation.arcminute }")
         if separation.arcminute > 18 or not self.guide_stars:

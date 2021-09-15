@@ -2,7 +2,7 @@
 #
 # @Author: Florian Briegel (briegel@mpia.de)
 # @Date: 2021-08-18
-# @Filename: client.py
+# @Filename: proxy.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import logging
@@ -163,8 +163,8 @@ async def invoke(*argv, raw=False):
                 return ret.replies[-1].body
             else:
                 return DictObject(ret.replies[-1].body)
-    
-async def unpack(cmd, key: str = None):
+
+async def unpack(cmd, *argv):
     """ invokes one command and unpacks every parameter from the body of finishinmg reply
     
         It uses pythons list unpacking mechanism PEP3132, be warned if you dont use it the correct way.
@@ -191,20 +191,17 @@ async def unpack(cmd, key: str = None):
         Parameters
         ----------
        
-        key
-           return only the parameter key 
-           
-       
+        argv
+           return only the parameters from argv
     """
+    
     ret = await invoke(cmd, raw=True)
-    if key:
-        return ret["key"]
+    if len(ret) == 0:
+        return
+    elif len(ret) == 1:
+        return list(ret.values())[0] # Maybe we should check if argv is not empty and throw an exception
+    elif len(argv) > 1:
+        return [ret[i] for i in argv]
     else:
-        ret = list(ret.values())
-        if len(ret) == 0:
-            return ret
-        elif len(ret) == 1:
-            return ret[0]
-        else:
-            return ret
+        return list(ret.values())
 

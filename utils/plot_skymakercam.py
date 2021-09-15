@@ -18,15 +18,15 @@ import os
 import sys
 import logging
 import time
+import uuid
 
 from plotit import PlotIt
 from keyreader import KeyReader
 
-from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio, rebin
+from clu import AMQPClient, CommandStatus
 
-from skymakercam.actor.x_stage import Client as FocusStage
-from skymakercam.actor.trajectory import Client as KMirror
-from skymakercam.actor.pwi import Client as Telescope
+from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio, rebin
+from skymakercam.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
 
 
 async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, config="../etc/cameras.yaml"):
@@ -38,22 +38,19 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
         cs.logger.log(logging.DEBUG, f"cameras {cs.list_available_cameras()}")
 #        cs.logger.log(logging.DEBUG, f"config {cs._config[camname]['tcs']}")
 
-    # client interfaces to TCS, focus stage and kmirror are optional and not needed for skymakercam - it connects internally to them.
-    tcs = Telescope(cs._config[camname]['tcs'])
-    await tcs.start()
-    cs.logger.log(logging.DEBUG, f"tcs {await tcs.status()}")
-    await tcs.connect()
-    await tcs.setTrackingOn(True)
+    ## client interfaces to TCS, focus stage and kmirror are optional and not needed for skymakercam - it connects internally to them.
+    amqpc = AMQPClient(name=f"{sys.argv[0]}.proxy-{uuid.uuid4().hex[:8]}")
+    await amqpc.start()
+    
+    pwi_tcs = Proxy(cs._config[camname]['tcs'], amqpc=amqpc)
+    await pwi_tcs.connect()
+    await pwi_tcs.setTrackingOn(True)
 
-    # we do reuse the AMQPClient
-    focus_stage = FocusStage(cs._config[camname]['focus_stage'], amqpc=tcs.amqpc)
-    await focus_stage.getDeviceEncoderPosition()
+    focus_stage = Proxy(cs._config[camname]['focus_stage'], amqpc=amqpc)
     await focus_stage.moveToHome()
-    
-    # we do reuse the AMQPClient
-    kmirror = KMirror(cs._config[camname]['kmirror'], amqpc=tcs.amqpc)
-    
 
+    kmirror = Proxy(cs._config[camname]['kmirror'], amqpc=amqpc)
+  
     exp = await cam.expose(exptime, camname)
     p = PlotIt(rebin(exp.data, binning), guiderect, logger=cs.logger.log)
 

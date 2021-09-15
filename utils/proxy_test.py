@@ -2,7 +2,7 @@
 #
 # @Author: Florian Briegel (briegel@mpia.de)
 # @Date: 2021-08-18
-# @Filename: base_client.py
+# @Filename: proxy_test.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 
 import uuid
@@ -23,19 +23,19 @@ async def test_single_param_return():
     lvm_sci_foc=Proxy(consumer, amqpc)
     amqpc.log.warning(sys.argv[0])
         
-    amqpc.log.warning(f'#2: {await unpack(lvm_sci_foc.isReachable())}')
+    amqpc.log.warning(f'#1: {await unpack(lvm_sci_foc.isReachable())}')
     pos, unit = await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))
     amqpc.log.warning(f'#2: {pos}, {unit}')
 
-    amqpc.log.warning(f'#2: {(await invoke(lvm_sci_foc.getPosition())).Position}')
+    amqpc.log.warning(f'#3: {(await invoke(lvm_sci_foc.getPosition())).Position}')
 
     pos = await invoke(lvm_sci_foc.getDeviceEncoderPosition("UM"))
-    amqpc.log.warning(f'#2: {pos.DeviceEncoderPosition}')
+    amqpc.log.warning(f'#4: {pos.DeviceEncoderPosition}')
 
     pos = await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))
-    amqpc.log.warning(f'#2: {pos}')
+    amqpc.log.warning(f'#5 {pos}')
 
-    amqpc.log.warning(f'#2: {await invoke(lvm_sci_foc.getNamedPosition(1))}')
+    amqpc.log.warning(f'#6: {await invoke(lvm_sci_foc.getNamedPosition(1))}')
 
     try:
         await invoke(lvm_sci_foc.getNamedPosition(1), lvm_sci_foc.getNamedPosition(10), lvm_sci_foc.getNamedPosition(12))
@@ -54,6 +54,8 @@ async def test_single_param_return():
 
 
 asyncio.run(test_single_param_return())
+
+exit(0)
 
 async def test_single_param_return():
     
