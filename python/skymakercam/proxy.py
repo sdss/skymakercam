@@ -90,9 +90,9 @@ def _stringToException(errstr):
 
 
 class DictObject(object):
-    """converts a dict to an n object
+    """converts a dict to an object
     
-    Note: ideally to whould be done before converting with json from string to dict.
+    Note: Ideally tthis whould be done before converting with json from string to dict.
     
       import json
       from collections import namedtuple
