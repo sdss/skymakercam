@@ -55,7 +55,6 @@ async def test_single_param_return():
 
 asyncio.run(test_single_param_return())
 
-exit(0)
 
 async def test_single_param_return():
     
@@ -68,7 +67,7 @@ async def test_single_param_return():
     amqpc.log.warning(f'#1: {(await invoke(lvm_sci_foc.isReachable())).Reachable}')
     
     amqpc.log.warning(f'#2: {await unpack(lvm_sci_foc.isReachable())}')
-    amqpc.log.warning(f'#2: {await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))}')
+    amqpc.log.warning(f'#3: {await unpack(lvm_sci_foc.getDeviceEncoderPosition("UM"))}')
     
 asyncio.run(test_single_param_return())
 
