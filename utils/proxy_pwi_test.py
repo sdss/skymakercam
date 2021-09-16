@@ -27,7 +27,9 @@ async def test_simple_pwi_ctrl():
     try:
         
         await lvm_sci_pwi.setConnected(True)
+        
         await lvm_sci_pwi.setEnabled(True)
+        
         isTracking = await unpack(lvm_sci_pwi.setTracking(True))
         assert isTracking == True
         
@@ -41,7 +43,6 @@ async def test_simple_pwi_ctrl():
         # we do use send_command/click options without --, it will be added internally
         await lvm_sci_pwi.offset(ra_add_arcsec=10)
         
-
     except Exception as e:
         amqpc.log.warning(f"Exception: {e}")
 
