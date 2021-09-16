@@ -11,6 +11,7 @@ import asyncio
 import json
 from types import SimpleNamespace
 from typing import Any, Callable, Optional, Awaitable
+from itertools import chain
 
 from clu import AMQPClient, AMQPReply, command_parser
 from clu.tools import CommandStatus
@@ -54,8 +55,10 @@ class _ProxyMethod:
         blocking: bool = True,
         callback: Callable[[Any], Awaitable[None]] = None,
         timeout = 1.4142,
+        **kwargs,
     ):
-        command =  await asyncio.wait_for(self._amqpc.send_command(self._consumer, self._command.lower(), *args, callback=callback), timeout) 
+        opts=list(chain.from_iterable(('--'+k, v) for k, v in kwargs.items()))
+        command =  await asyncio.wait_for(self._amqpc.send_command(self._consumer, self._command.lower(), *args, *opts, callback=callback), timeout) 
         return await command if blocking else command
 
 
@@ -124,7 +127,7 @@ class DictObject(object):
                setattr(self, a, DictObject(b) if isinstance(b, dict) else b)
 
 
-async def invoke(*argv, raw=False):
+async def invoke(*argv, raw=False, **kwargs):
     """invokes one or many commands in parallel
     
        On error it throws an exception if one of the commands fails as a dict with an exception or None for every command. 
@@ -134,8 +137,8 @@ async def invoke(*argv, raw=False):
        ----------
        
        raw
-           True: returns the body of finishinmg reply as a dict
-           False: returns the body of finishinmg reply as a DictObject
+           True: returns the body of the finish reply as a dict
+           False: returns the body of the finish reply as a DictObject
        
     """
     
@@ -165,7 +168,7 @@ async def invoke(*argv, raw=False):
             else:
                 return DictObject(ret.replies[-1].body)
 
-async def unpack(cmd, *argv):
+async def unpack(cmd, *argv, **kwargs):
     """ invokes one command and unpacks every parameter from the body of the finish reply
     
         It uses pythons list unpacking mechanism PEP3132, be warned if you dont use it the correct way.
