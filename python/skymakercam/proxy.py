@@ -83,7 +83,7 @@ class Proxy:
 def _stringToException(errstr):
     """converts a string to an exception object"""
     try:
-       return eval(errstr)
+       return eval(errstr) # Maybe a bad idea - code injection
    
     except SyntaxError as e:
        return ProxyPlainMessagException(errstr)

@@ -21,8 +21,6 @@ async def test_simple_pwi_ctrl():
     await amqpc.start()
     
     lvm_sci_pwi=Proxy(consumer, amqpc)
-#    amqpc.log.warning(sys.argv[0])
-        
 
     try:
         
