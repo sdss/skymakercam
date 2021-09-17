@@ -152,21 +152,16 @@ async def invoke(*argv, raw=False, **kwargs):
                 errors.append(_stringToException(r.replies[-1].body['error']))
             else:
                 errors.append(None)
-        if hasErrors:
-            raise ProxyException(errors)
-        if raw:        
-            return [r.replies[-1].body for r in ret]
-        else:
-            return [DictObject(r.replies[-1].body) for r in ret]
+        if hasErrors: raise ProxyException(errors)
+        if raw: return [r.replies[-1].body for r in ret]
+        else: return [DictObject(r.replies[-1].body) for r in ret]
     else:
         ret = await argv[0]
         if ret.status.did_fail:
             raise _stringToException(ret.replies[-1].body['error'])
         else:
-            if raw:        
-                return ret.replies[-1].body
-            else:
-                return DictObject(ret.replies[-1].body)
+            if raw: return ret.replies[-1].body
+            else: return DictObject(ret.replies[-1].body)
 
 async def unpack(cmd, *argv, **kwargs):
     """ invokes one command and unpacks every parameter from the body of the finish reply
@@ -200,12 +195,8 @@ async def unpack(cmd, *argv, **kwargs):
     """
     
     ret = await invoke(cmd, raw=True)
-    if len(ret) == 0:
-        return
-    elif len(ret) == 1:
-        return list(ret.values())[0] # Maybe we should check if argv is not empty and throw an exception
-    elif len(argv) > 1:
-        return [ret[i] for i in argv]
-    else:
-        return list(ret.values())
+    if len(ret) == 0: return
+    elif len(ret) == 1: return list(ret.values())[0] # Maybe we should check if argv is not empty and throw an exception
+    elif len(argv) > 1: return [ret[i] for i in argv]
+    else: return list(ret.values())
 
