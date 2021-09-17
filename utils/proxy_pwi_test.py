@@ -9,7 +9,7 @@ import uuid
 import sys
 
 from clu import AMQPClient, CommandStatus
-from skymakercam.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
+from cluplus.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
 
 import asyncio
 
