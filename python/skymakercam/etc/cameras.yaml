@@ -4,7 +4,7 @@
 cameras:
     lvm.sci.agw.cam:
         uid: "lvm.sci.agw.cam"
-        descr: "Guider Camera Science West"
+        descr: "Guider Camera Science"
         default:
             gain: 5.0
             binning: [4, 4]

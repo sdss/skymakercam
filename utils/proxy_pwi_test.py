@@ -23,6 +23,13 @@ async def test_simple_pwi_ctrl():
     lvm_sci_pwi=Proxy(consumer, amqpc)
 
     try:
+
+        
+        ret = await unpack(lvm_sci_pwi.help())
+
+        print(ret)
+        
+        exit(0)
         
         await lvm_sci_pwi.setConnected(True)
         
