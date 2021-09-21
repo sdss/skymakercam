@@ -49,7 +49,8 @@ PyQt5 = ">=5.14"
 sdss-clu = ">=1.2.0"
 sdss-basecam = ">= 0.5"
 keyboard = ">0.13"
-asyncudp= ">=0.4"
+asyncudp = ">=0.4"
+transitions = ">0.8"
 
 
 [tool.poetry.dev-dependencies]
