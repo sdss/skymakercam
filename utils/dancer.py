@@ -20,15 +20,14 @@ class Dancer:
     async def dance(self):
         while self.moves_done < 5:
             await self.step()
-
-
+      
 dancer1 = Dancer('Tick', 1)
-dancer2 = Dancer('Tock', 1.1)
+dancer2 = Dancer('Tock', 2)
 
 m = AsyncMachine(model=[dancer1, dancer2], states=Dancer.states, initial='start', after_state_change='wait')
 m.add_ordered_transitions(trigger='step')
 
 async def run():
     await asyncio.gather(dancer1.dance(), dancer2.dance())
-
+    
 asyncio.run(run())

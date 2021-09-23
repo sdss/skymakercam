@@ -24,7 +24,7 @@ from plotit import PlotIt
 from keyreader import KeyReader
 
 from clu import AMQPClient, CommandStatus
-from clulpus.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
+from cluplus.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
 
 from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio, rebin
 
