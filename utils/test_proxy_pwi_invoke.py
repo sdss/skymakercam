@@ -55,5 +55,5 @@ async def test_proxy_pwi_invoke():
 
 
 
-asyncio.run(test_simple_pwi_ctrl())
+asyncio.run(test_proxy_pwi_invoke())
 
