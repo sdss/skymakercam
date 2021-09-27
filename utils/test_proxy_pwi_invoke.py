@@ -13,7 +13,7 @@ from cluplus.proxy import Proxy, ProxyException, ProxyPlainMessagException, invo
 
 import asyncio
 
-async def test_proxy_pwi_invoke():
+async def test_proxy_pwi_invoke(ra, dec):
     amqpc = AMQPClient(name=f"{sys.argv[0]}.proxy-{uuid.uuid4().hex[:8]}")
     await amqpc.start()
     
@@ -41,10 +41,10 @@ async def test_proxy_pwi_invoke():
         def callback(reply): amqpc.log.warning(f"Reply: {CommandStatus.code_to_status(reply.message_code)} {reply.body}")
         
         rc = await invoke(
-                 lvm_sci_pwi.gotoRaDecJ2000(10, 20, callback=callback),
-                 lvm_skye_pwi.gotoRaDecJ2000(10, 20),
-                 lvm_skyw_pwi.gotoRaDecJ2000(10, 20),
-                 lvm_spec_pwi.gotoRaDecJ2000(10, 20),
+                 lvm_sci_pwi.gotoRaDecJ2000(ra, dec, callback=callback),
+                 lvm_skye_pwi.gotoRaDecJ2000(ra, dec),
+                 lvm_skyw_pwi.gotoRaDecJ2000(ra, dec),
+                 lvm_spec_pwi.gotoRaDecJ2000(ra, dec),
               )
         
         # we do use send_command/click options without --, it will be added internally
@@ -54,6 +54,9 @@ async def test_proxy_pwi_invoke():
         amqpc.log.warning(f"Exception: {e}")
 
 
-
-asyncio.run(test_proxy_pwi_invoke())
+print (len(sys.argv))
+if len(sys.argv) < 3:
+    print(f'missing ra dec param')
+    
+asyncio.run(test_proxy_pwi_invoke(sys.argv[1], sys.argv[2]))
 
