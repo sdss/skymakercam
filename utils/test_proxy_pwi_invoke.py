@@ -13,7 +13,7 @@ from cluplus.proxy import Proxy, ProxyException, ProxyPlainMessagException, invo
 
 import asyncio
 
-async def test_quad_pwi_ctrl():
+async def test_proxy_pwi_invoke():
     amqpc = AMQPClient(name=f"{sys.argv[0]}.proxy-{uuid.uuid4().hex[:8]}")
     await amqpc.start()
     
