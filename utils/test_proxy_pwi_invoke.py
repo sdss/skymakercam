@@ -41,7 +41,7 @@ async def test_quad_pwi_ctrl():
         def callback(reply): amqpc.log.warning(f"Reply: {CommandStatus.code_to_status(reply.message_code)} {reply.body}")
         
         rc = await invoke(
-                 lvm_sci_pwi.gotoRaDecJ2000(10, 20, callback=callback)
+                 lvm_sci_pwi.gotoRaDecJ2000(10, 20, callback=callback),
                  lvm_skye_pwi.gotoRaDecJ2000(10, 20),
                  lvm_skyw_pwi.gotoRaDecJ2000(10, 20),
                  lvm_spec_pwi.gotoRaDecJ2000(10, 20),
