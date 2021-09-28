@@ -26,11 +26,7 @@ async def test_simple_pwi_ctrl():
 
         
         ret = await unpack(lvm_sci_pwi.help())
-
-        print(ret)
-        
-        exit(0)
-        
+       
         await lvm_sci_pwi.setConnected(True)
         
         await lvm_sci_pwi.setEnabled(True)
