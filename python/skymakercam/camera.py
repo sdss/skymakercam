@@ -34,7 +34,7 @@ from basecam.notifier import EventListener
 from basecam.utils import cancel_task
 
 from skymakercam.params import load as params_load
-from skymakercam.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
+from cluplus.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
