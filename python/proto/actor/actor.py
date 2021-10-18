@@ -11,6 +11,7 @@ import asyncio
 from contextlib import suppress
 
 from clu.actor import AMQPActor
+from cluplus.configloader import Loader
 
 from proto.actor.commands import parser as proto_command_parser
 
@@ -51,13 +52,13 @@ class ProtoActor(AMQPActor):
 
     @classmethod
     def from_config(cls, config, *args, **kwargs):
-        """Creates an actor from a configuration file."""
+        """Creates an actor from hierachical configuration file(s)."""
 
-        instance = super(ProtoActor, cls).from_config(config, *args, **kwargs)
+        instance = super(ProtoActor, cls).from_config(config, loader=Loader, *args, **kwargs)
 
         if kwargs["verbose"]:
-            proto_obj.log.fh.setLevel(0)
-            proto_obj.log.sh.setLevel(0)
+            instance.log.fh.setLevel(0)
+            instance.log.sh.setLevel(0)
 
         instance.log.debug("Hello world")
 

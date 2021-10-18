@@ -1,0 +1,35 @@
+# A dictionary of controller name to NPS controller connection parameters.
+type: dummy
+#type: dli
+hostname: 10.7.45.29
+use_https: False
+user: 'admin'
+password: 'VCrht9wfx2CQN9b'
+num: 8
+ouo: False # handle also unconfigured ports
+ports:
+    1:
+        name: "router_switch"
+        desc: "Router power switch"
+    2:
+        name: "ln2_nir_valve"
+        desc: "LVM Instrument Electronic Box"
+    3:
+        name: "LVM-Archon-02"
+        desc: "???"
+    4:
+        name: "IEB06"
+        desc: "Archon controller"
+    5:
+        name: "rpi1"
+        desc: "Raspberry_Pi PC"
+    6:
+        name: "rpi2"
+        desc: "Cryogenic solenoid valve for liquid nitrogen."
+    7:
+        name: "FFS_LED"
+        desc: "???"
+    8:
+        name: "pressure_transducers"
+        desc: "Pressure transducers"
+    
