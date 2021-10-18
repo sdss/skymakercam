@@ -35,6 +35,6 @@ files = [
 
 for file_ in files:
     modname = file_[0:-3].replace("/", ".")
-    mod = importlib.import_module("lvmpwi.actor.commands." + modname)
+    mod = importlib.import_module("proto.actor.commands." + modname)
 
 os.chdir(cwd)

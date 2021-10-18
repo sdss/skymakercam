@@ -23,8 +23,7 @@ async def test_simple_pwi_ctrl():
     lvm_sci_pwi=Proxy(consumer, amqpc)
 
     try:
-
-        
+      
         ret = await unpack(lvm_sci_pwi.help())
        
         await lvm_sci_pwi.setConnected(True)
@@ -37,7 +36,7 @@ async def test_simple_pwi_ctrl():
         # lets define a callback for status updates.
         def callback(reply): amqpc.log.warning(f"Reply: {CommandStatus.code_to_status(reply.message_code)} {reply.body}")
 
-        await lvm_sci_pwi.park(callback=callback)
+        # await lvm_sci_pwi.park(callback=callback)
         
         await lvm_sci_pwi.gotoRaDecJ2000(10, 20, callback=callback)
         

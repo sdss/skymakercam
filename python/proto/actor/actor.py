@@ -12,17 +12,17 @@ from contextlib import suppress
 
 from clu.actor import AMQPActor
 
-from lvmagp.actor.commands import parser as agp_command_parser
-#from lvmagp.agp import PWI4
-
-__all__ = ["lvmagp"]
+from proto.actor.commands import parser as proto_command_parser
 
 
-class lvmagp(AMQPActor):
+__all__ = ["ProtoActor"]
+
+
+class ProtoActor(AMQPActor):
     """PWI actor.
     """
 
-    parser = agp_command_parser
+    parser = proto_command_parser
     
     def __init__(
             self,
@@ -30,20 +30,15 @@ class lvmagp(AMQPActor):
             **kwargs
     ):
         super().__init__(*args, **kwargs)
+        
 
     async def start(self):
         await super().start()
 
-        assert len(self.parser_args) == 1
+        assert len(self.parser_args) == 0
        
         try:
-            self.log.debug(f"Start agp ...")
-
-            agp = self.parser_args[0]
-            self.log.debug(f"{type(self.parser_args)}")
-            
-            status = agp.status()
-            self.log.debug(f"is_connected {status.mount.is_connected}")
+            self.log.debug(f"Start proto ...")
 
 
         except Exception as ex:
@@ -58,18 +53,15 @@ class lvmagp(AMQPActor):
     def from_config(cls, config, *args, **kwargs):
         """Creates an actor from a configuration file."""
 
+        instance = super(ProtoActor, cls).from_config(config, *args, **kwargs)
 
-        instance = super(lvmagp, cls).from_config(config, *args, **kwargs)
+        if kwargs["verbose"]:
+            proto_obj.log.fh.setLevel(0)
+            proto_obj.log.sh.setLevel(0)
 
-        instance.log.info("Hello world")
+        instance.log.debug("Hello world")
 
-        assert isinstance(instance, lvmagp)
+        assert isinstance(instance, ProtoActor)
         assert isinstance(instance.config, dict)
         
-        instance.log.debug(str(instance.config))
-
-        agp = "hello"
-         
-        instance.parser_args = [ agp ]
-
         return instance

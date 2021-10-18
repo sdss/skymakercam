@@ -43,7 +43,8 @@ class PlotIt:
         self.pl_img = self.ax_img.imshow(data, interpolation='nearest', vmin=self.mean-self.sigma, vmax=self.mean+self.sigma, origin='lower')
         self.ax_img.set_title('skymaker cam', fontweight ="bold")
         self.fig.colorbar(self.pl_img, cax=cax_r, orientation='vertical')
-        
+        # plt.colorbar(ticks=[1.0,3.0,6.0])
+        # cbar.ax.set_yticklabels(['1','3','6'])
         self.pl_ax = [plt.subplot2grid((3,4), (0,0)),
                       plt.subplot2grid((3,4), (1,0)),
                       plt.subplot2grid((3,4), (2,0))]

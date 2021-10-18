@@ -92,6 +92,23 @@ def _stringToException(errstr):
        return Exception("Unexpected exception in parsing exception string", e)
 
 
+def _stringToException2(errtype, errstr):
+    """converts a string to an exception object"""
+    
+    from pydoc import locate
+    
+    try:
+       return locate(errtype)(errstr)
+   
+    except SyntaxError as e:
+       return ProxyPlainMessagException(errstr)
+   
+    except Exception as e:
+       return Exception("Unexpected exception in parsing exception string", e)
+
+
+
+
 class DictObject(object):
     """converts a dict to an object
     
