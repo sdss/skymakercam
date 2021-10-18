@@ -71,12 +71,16 @@ class JsonPickleParamType(click.ParamType):
 
 
 @parser.command()
-@click.argument("pickle", type=JsonPickleParamType())
-async def bigData(command: Command, pickle):
+@click.argument("data", type=JsonPickleParamType())
+async def bigData(command: Command, data):
     """Returns the status of the outlets."""
 
-    command.info(text=f"Data: {type(pickle)} {pickle}")
-
-    return command.finish("done")
+    command.info(text=f"Data: {type(data)} {data}")
+    
+    #pickled = jsonpickle.encode(data, make_refs=False)
+    #print(pickled)
+    #command.info(data=pickled)
+        
+    return command.finish()
 
 
