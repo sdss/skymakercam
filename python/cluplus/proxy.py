@@ -58,7 +58,7 @@ class _ProxyMethod:
         **kwargs,
     ):
         opts=list(chain.from_iterable(('--'+k, v) for k, v in kwargs.items()))
-        command =  await asyncio.wait_for(self._amqpc.send_command(self._consumer, self._command.lower(), *args, *opts, callback=callback), timeout) 
+        command =  await asyncio.wait_for(self._amqpc.send_command(self._consumer, self._command, *args, *opts, callback=callback), timeout) 
         return await command if blocking else command
 
 
