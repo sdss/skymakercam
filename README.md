@@ -29,9 +29,9 @@ With this [config example python/skymakercam/etc/cameras.yaml](https://github.co
     async def example_skymakercam(camname, verb, config):
    
        cs = SkymakerCameraSystem(SkymakerCamera, camera_config=config, verbose=verb)
-       cam = await cs.add_camera(name=camname, uid=cs.config[camname]["uid"])
+       cam = await cs.add_camera(name=camname, uid=cs._config[camname]["uid"])
 
-       # eg: expose or do wahtever u do with a sdss-basecam
+       # eg: expose or do whatever u do with a sdss-basecam.
        exp = await cam.expose(exptime, camname)
        
    
