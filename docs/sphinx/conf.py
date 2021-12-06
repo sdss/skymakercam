@@ -321,6 +321,6 @@ if use_releases == 'yes':
 
     extensions += ['sdsstools.releases']
 
-    releases_github_path = 'wasndas/skymakercam'
+    releases_github_path = 'sdss/skymakercam'
     releases_document_name = ['CHANGELOG']
     releases_unstable_prehistory = True
