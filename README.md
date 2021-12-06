@@ -21,11 +21,23 @@ Skymaker camera based on sdss-basecam
 
 
 ## use your own python code:
-It used as a sdss-basecam camera for tests. With this [config example python/skymakercam/etc/cameras.yaml](https://github.com/wasndas/skymakercam/blob/master/python/skymakercam/etc/cameras.yaml) and the actors running from before it can be used like this:
-    
+With this [config example python/skymakercam/etc/cameras.yaml](https://github.com/wasndas/skymakercam/blob/master/python/skymakercam/etc/cameras.yaml) and the actors running from before it can be used like this:
+
+    from logging import DEBUG, INFO
     from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera
 
-    python/skymakercam/etc/cameras.yaml
+    async def example_skymakercam(camname, verb, config):
+   
+       cs = SkymakerCameraSystem(SkymakerCamera, camera_config=config, verbose=verb)
+       cam = await cs.add_camera(name=camname, uid=cs.config[camname]["uid"])
+
+       # eg: expose or do wahtever u do with a sdss-basecam
+       exp = await cam.expose(exptime, camname)
+       
+   
+    verb = DEBUG
+    camname = "lvm.sci.agw.cam"
+    config = "python/skymakercam/etc/cameras.yaml"
+
+    asyncio.run(example_skymakercam(camname, verb, config))
     
-    cs = SkymakerCameraSystem(SkymakerCamera, camera_config=config, verbose=verb)
-    cam = await cs.add_camera(name=camname, uid=cs._config[camname]["uid"])
