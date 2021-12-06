@@ -20,3 +20,12 @@ Skymaker camera based on sdss-basecam
     poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
 
 
+## use your own python code:
+It used as a sdss-basecam camera for tests. With this [config example python/skymakercam/etc/cameras.yaml](https://github.com/wasndas/skymakercam/blob/master/python/skymakercam/etc/cameras.yaml) and the actors running from before it can be used like this:
+    
+    from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera
+
+    python/skymakercam/etc/cameras.yaml
+    
+    cs = SkymakerCameraSystem(SkymakerCamera, camera_config=config, verbose=verb)
+    cam = await cs.add_camera(name=camname, uid=cs._config[camname]["uid"])
