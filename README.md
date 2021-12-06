@@ -31,7 +31,7 @@ With this [config example python/skymakercam/etc/cameras.yaml](https://github.co
        cs = SkymakerCameraSystem(SkymakerCamera, camera_config=config, verbose=verb)
        cam = await cs.add_camera(name=camname, uid=cs._config[camname]["uid"])
 
-       # eg: expose or do whatever u do with a sdss-basecam.
+       # eg: expose or do whatever u do with a sdss-basecam type camera.
        exp = await cam.expose(exptime, camname)
        
    
