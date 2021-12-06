@@ -85,7 +85,10 @@ lines_after_imports = 2
 use_parentheses = true
 
 [tool.pytest.ini_options]
-addopts = "--cov skymakercam --cov-report xml --cov-report html --cov-report term"
+addopts = "--cov cluplus --cov-report xml --cov-report html --cov-report term"
+testpaths = [
+    "tests",
+]
 
 [tool.coverage.run]
 branch = true
