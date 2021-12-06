@@ -24,7 +24,7 @@ from plotit import PlotIt
 from keyreader import KeyReader
 
 from clu import AMQPClient, CommandStatus
-from cluplus.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
+from cluplus.proxy import Proxy, invoke, unpack
 
 from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio, rebin
 
@@ -42,15 +42,17 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
     amqpc = AMQPClient(name=f"{sys.argv[0]}.proxy-{uuid.uuid4().hex[:8]}")
     await amqpc.start()
     
-    pwi_tcs = Proxy(cs._config[camname]['tcs'], amqpc=amqpc)
-    await pwi_tcs.connect()
-    await pwi_tcs.setTrackingOn(True)
+    pwi_tcs = Proxy(amqpc, cs._config[camname]['tcs'])
+    await pwi_tcs.start()
+    await pwi_tcs.setConnected(True)
+    await pwi_tcs.setTracking(True)
 
-    focus_stage = Proxy(cs._config[camname]['focus_stage'], amqpc=amqpc)
+    focus_stage = Proxy(amqpc, cs._config[camname]['focus_stage'])
+    await focus_stage.start()
     await focus_stage.moveToHome()
 
-    kmirror = Proxy(cs._config[camname]['kmirror'], amqpc=amqpc)
-  
+    kmirror = Proxy(amqpc, cs._config[camname]['kmirror'])
+    await kmirror.start()
     exp = await cam.expose(exptime, camname)
     p = PlotIt(rebin(exp.data, binning), guiderect, logger=cs.logger.log)
 

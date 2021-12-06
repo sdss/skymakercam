@@ -34,7 +34,7 @@ from basecam.notifier import EventListener
 from basecam.utils import cancel_task
 
 from skymakercam.params import load as params_load
-from cluplus.proxy import Proxy, ProxyException, ProxyPlainMessagException, invoke, unpack
+from cluplus.proxy import Proxy, ProxyPartialInvokeException, invoke, unpack
 
 from astropy.coordinates import SkyCoord
 import astropy.units as u
@@ -133,7 +133,8 @@ class SkymakerCamera(
 
         self.amqpc = AMQPClient(name=f"{sys.argv[0]}.proxy-{uuid.uuid4().hex[:8]}")
 
-        self._tcs = Proxy(self.config_get('tcs', None), amqpc=self.amqpc)
+        self._tcs = Proxy(self.amqpc, self.config_get('tcs', None))
+        
         self.tcs_coord = None
         self.tcs_pa = 0
         self.ra_off = 0.0
@@ -142,13 +143,13 @@ class SkymakerCamera(
         self.guide_stars = None
         
         # we do reuse the AMQPClient
-        self._focus_stage = Proxy(self.config_get('focus_stage', None), amqpc=self.amqpc)
+        self._focus_stage = Proxy(self.amqpc, self.config_get('focus_stage', None))
         self.sky_flux = self.config_get('default.sky_flux', 15)
         self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
         self.exp_time = self.config_get('default.exp_time',5)
         
         # we do reuse the AMQPClient
-        self._kmirror = Proxy(self.config_get('kmirror', None), amqpc=self.amqpc)
+        self._kmirror = Proxy(self.amqpc, self.config_get('kmirror', None))
         self.kmirror_angle = 0.
         
         self._shutter_position = False
@@ -171,14 +172,18 @@ class SkymakerCamera(
         self.image_namer.dirname = EXPOSURE_DIR.name
 
     async def tcs_get_position_j2000(self):
-        status = await invoke(self._tcs.status())
-        return SkyCoord(ra=status.ra_j2000_hours*u.hour, dec=status.dec_j2000_degs*u.deg), status.field_angle_here_degs
+        status = await self._tcs.status()
+        print(status)
+        return SkyCoord(ra=status["ra_j2000_hours"]*u.hour, dec=status["dec_j2000_degs"]*u.deg), status["field_angle_here_degs"]
 
 
     async def _connect_internal(self, **connection_params):
         self.log(f"connecting ...")
         await self.amqpc.start()
-        
+        await self._tcs.start()
+        await self._focus_stage.start()
+        await self._kmirror.start()
+
         self.tcs_coord, self.tcs_pa = await self.tcs_get_position_j2000()
         
         return True
@@ -204,10 +209,10 @@ class SkymakerCamera(
 
     async def create_synthetic_image(self):
 
-        self.defocus = (math.fabs((await invoke(self._focus_stage.getDeviceEncoderPosition('UM'))).DeviceEncoderPosition )/100)**2
+        self.defocus = (math.fabs((await self._focus_stage.getDeviceEncoderPosition('UM'))["DeviceEncoderPosition"] )/100)**2
         self.log(f"defocus {self.defocus}")
 
-        self.kmirror_angle = (await invoke(self._kmirror.getDeviceEncoderPosition('DEG'))).DeviceEncoderPosition
+        self.kmirror_angle = float((await self._kmirror.getDeviceEncoderPosition('DEG'))["DeviceEncoderPosition"])
         self.log(f"kmirror angle (deg): {self.kmirror_angle}")
 
         tcs_coord_current, self.tcs_pa = await self.tcs_get_position_j2000()

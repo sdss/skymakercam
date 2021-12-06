@@ -1,6 +1,0 @@
-# Actor configuration for the AMQPActor class
-actor:
-    name: proto
-    host: localhost
-    port: 5672
-    log_dir: '~/tmp/log'
