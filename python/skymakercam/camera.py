@@ -173,7 +173,6 @@ class SkymakerCamera(
 
     async def tcs_get_position_j2000(self):
         status = await self._tcs.status()
-        print(status)
         return SkyCoord(ra=status["ra_j2000_hours"]*u.hour, dec=status["dec_j2000_degs"]*u.deg), status["field_angle_here_degs"]
 
 
