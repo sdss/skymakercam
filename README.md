@@ -5,7 +5,7 @@
 [![Travis (.org)](https://img.shields.io/travis/wasndas/skymakercam)](https://travis-ci.org/wasndas/skymakercam)
 [![codecov](https://codecov.io/gh/wasndas/skymakercam/branch/main/graph/badge.svg)](https://codecov.io/gh/wasndas/skymakercam)
 
-Skymaker camera based on sdss-basecam
+Virtual camera based on sdss-basecam using remote catalog
 
 ## from [lvmtan](https://github.com/sdss/lvmtan) run:
 
