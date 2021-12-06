@@ -23,6 +23,7 @@ Virtual camera based on sdss-basecam using remote catalog
 ## use it in your own python code:
 With this [config example python/skymakercam/etc/cameras.yaml](https://github.com/sdss/skymakercam/blob/master/python/skymakercam/etc/cameras.yaml) and the actors running from before, it can be used like this:
 
+    import asyncio
     from logging import DEBUG, INFO
     from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera
 
