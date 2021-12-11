@@ -17,6 +17,12 @@ Virtual camera based on sdss-basecam using remote catalog
 
 ## from skymakercam run:
     poetry run python utils/plot_skymakercam.py -v -c python/skymakercam/etc/cameras.yaml lvm.sci.agw.cam
+    
+* Move lvm.sci.foc for focusing - relative 10000 steps.
+* Move lvm.sci.km absolute in degree "DEG".
+* Move lvm.sci.pwi for target.
+* Press 'o' for find stars and recenter.
+* Press 'q' to quit.
 
 ![image](https://github.com/sdss/skymakercam/raw/master/docs/skymaker_plot.png)
 
