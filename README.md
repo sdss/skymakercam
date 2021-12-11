@@ -27,7 +27,7 @@ With this [config example python/skymakercam/etc/cameras.yaml](https://github.co
     from logging import DEBUG, INFO
     from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera
 
-    async def example_skymakercam(camname, verb, config):
+    async def example_skymakercam(camname, exptime, verb, config):
    
        cs = SkymakerCameraSystem(SkymakerCamera, camera_config=config, verbose=verb)
        cam = await cs.add_camera(name=camname, uid=cs._config[camname]["uid"])
@@ -40,5 +40,5 @@ With this [config example python/skymakercam/etc/cameras.yaml](https://github.co
     camname = "lvm.sci.agw.cam"
     config = "python/skymakercam/etc/cameras.yaml"
 
-    asyncio.run(example_skymakercam(camname, verb, config))
+    asyncio.run(example_skymakercam(camname, 5.0, verb, config))
     
