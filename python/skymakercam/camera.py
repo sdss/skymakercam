@@ -190,7 +190,7 @@ class SkymakerCamera(
     async def _disconnect_internal(self):
         """Close connection to camera.
         """
-        await amqpc.stop()
+        await self.amqpc.stop()
 
     def _status_internal(self):
         return {"temperature": self.temperature, "cooler": 10.0}
