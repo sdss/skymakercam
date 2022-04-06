@@ -14,14 +14,19 @@ import pathlib
 import math
 import uuid
 
-from logging import INFO, WARNING
+from logging import DEBUG
+
+from typing import cast
+
 
 import numpy as np
 import json
 
 import astropy.time
 
-from sdsstools import read_yaml_file
+from sdsstools import get_logger, read_yaml_file
+from sdsstools.logger import SDSSLogger
+from sdsstools.logger import StreamFormatter  
 
 from clu import AMQPClient, CommandStatus
 from clu.model import Model
@@ -42,11 +47,6 @@ import astropy.units as u
 from skymakercam.starimage import find_guide_stars, make_synthetic_image
 
 __all__ = ['SkymakerCameraSystem', 'SkymakerCamera']
-
-
-#import re
-#def to_camel_case(text):
-    #return re.sub('[.](.)', lambda x: x.group(1).upper(), text.capitalize())
 
 
 def rebin(arr, bin):
@@ -79,20 +79,12 @@ class SkymakerCameraSystem(CameraSystem):
     from skymakercam import __version__
 #    __version__ = "0.0.138"
 
-    def __init__(self, camera_class=None, camera_config=None,
-                 include=None, exclude=None, logger=None,
-                 log_header=None, log_file=None, verbose=False, ip_list=None):
-        super().__init__(camera_class=camera_class, camera_config=camera_config,
-                         include=include, exclude=exclude, logger=logger, log_header=log_header,
-                         log_file=log_file, verbose=verbose)
-
-
     def list_available_cameras(self):
         """ Gather skymaker camera uids.
         :return: a list of cameras.
         :rtype: list
         """
-
+        print("c")
         return [c.camera_params.get("uid") for c in self.cameras]
 
 
@@ -100,7 +92,6 @@ class SkymakerCamera(
     BaseCamera,
     ExposureTypeMixIn,
     ShutterMixIn,
-    CoolerMixIn,
     ImageAreaMixIn,
 ):
     """A virtual camera that does not require hardware.
@@ -124,6 +115,10 @@ class SkymakerCamera(
 
         super().__init__(*args, **kwargs)
 
+        self.logger.sh.setLevel(DEBUG)
+        self.logger.sh.formatter = StreamFormatter(fmt='%(asctime)s %(name)s %(levelname)s %(filename)s:%(lineno)d: \033[1m%(message)s\033[21m') 
+        self.logger.debug("construct")
+
         self.config = kwargs['camera_params']
         self.inst_params = params_load(f"skymakercam.params.{self.config_get('instpar', None)}")
         self.inst_params.catalog_path = os.path.expandvars(self.config_get('catalog_path', tempfile.TemporaryDirectory()))
@@ -131,7 +126,9 @@ class SkymakerCamera(
             self.log(f"Creating catalog path: {self.inst_params.catalog_path}", WARNING)
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
 
-        self.amqpc = AMQPClient(name=f"{sys.argv[0]}.proxy-{uuid.uuid4().hex[:8]}")
+        rmqname = f"proxy-{uuid.uuid4().hex[:8]}"
+        self.logger.debug(rmqname)
+        self.amqpc = AMQPClient(name=rmqname)
 
         self._tcs = Proxy(self.amqpc, self.config_get('tcs', None))
         
@@ -177,19 +174,26 @@ class SkymakerCamera(
 
 
     async def _connect_internal(self, **connection_params):
-        self.log(f"connecting ...")
+        self.logger.debug(f"connecting ...")
+        
         await self.amqpc.start()
         await self._tcs.start()
         await self._focus_stage.start()
         await self._kmirror.start()
 
         self.tcs_coord, self.tcs_pa = await self.tcs_get_position_j2000()
-        
+
+        self.logger.debug(f"{self.tcs_coord}")
+
         return True
 
     async def _disconnect_internal(self):
         """Close connection to camera.
         """
+        self.logger.debug("disconnect")
+        await self._tcs.client.stop()
+        await self._focus_stage.client.stop()
+        await self._kmirror.client.stop()
         await self.amqpc.stop()
 
     def _status_internal(self):
