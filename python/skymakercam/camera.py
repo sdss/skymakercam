@@ -38,6 +38,11 @@ from basecam.mixins import CoolerMixIn, ExposureTypeMixIn, ImageAreaMixIn, Shutt
 from basecam.notifier import EventListener
 from basecam.utils import cancel_task
 
+from lvmtipo.site import Site
+from lvmtipo.siderostat import Siderostat
+from lvmtipo.fiber import Fiber
+from lvmtipo.target import Target
+
 from skymakercam.params import load as params_load
 from cluplus.proxy import Proxy, ProxyPartialInvokeException, invoke, unpack
 
@@ -149,6 +154,10 @@ class SkymakerCamera(
         self._kmirror = Proxy(self.amqpc, self.config_get('kmirror', None))
         self.kmirror_angle = 0.
         
+        self.site = self.config_get('site', "LCO")
+        self.sid = Siderostat()
+        self.geoloc = Site(name = self.site)
+
         self._shutter_position = False
 
         self.temperature = 25
@@ -219,13 +228,20 @@ class SkymakerCamera(
         self.log(f"kmirror angle (deg): {self.kmirror_angle}")
 
         tcs_coord_current, self.tcs_pa = await self.tcs_get_position_j2000()
+        
+        mathar_angle = math.degrees(self.sid.fieldAngle(self.geoloc, Target(tcs_coord_current), None))
+        self.log(f"mathar angle (deg): {mathar_angle}")
+
+        sky_angle = self.kmirror_angle - mathar_angle
+        self.log(f"sky angle (deg): {sky_angle}")
+
         separation = self.tcs_coord.separation(tcs_coord_current)
         self.log(f"separation {separation.arcminute }")
         if separation.arcminute > 18 or not self.guide_stars:
             self.tcs_coord = tcs_coord_current
-            self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(self.kmirror_angle), self.inst_params, remote_catalog=True)
+            self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(sky_angle), self.inst_params, remote_catalog=True)
         else:    
-            self.guide_stars = find_guide_stars(tcs_coord_current, np.deg2rad(self.kmirror_angle), self.inst_params, remote_catalog=False, cull_cat=False)
+            self.guide_stars = find_guide_stars(tcs_coord_current, np.deg2rad(sky_angle), self.inst_params, remote_catalog=False, cull_cat=False)
             
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,
