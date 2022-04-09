@@ -89,16 +89,10 @@ class SkymakerCameraSystem(CameraSystem):
         :return: a list of cameras.
         :rtype: list
         """
-        print("c")
         return [c.camera_params.get("uid") for c in self.cameras]
 
 
-class SkymakerCamera(
-    BaseCamera,
-    ExposureTypeMixIn,
-    ShutterMixIn,
-    ImageAreaMixIn,
-):
+class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
     """A virtual camera that does not require hardware.
 
     This class is mostly intended for testing and development. It behaves
@@ -157,8 +151,6 @@ class SkymakerCamera(
         self.site = self.config_get('site', "LCO")
         self.sid = Siderostat()
         self.geoloc = Site(name = self.site)
-
-        self._shutter_position = False
 
         self.temperature = 25
         self._change_temperature_task = None
@@ -256,13 +248,13 @@ class SkymakerCamera(
 
         image_type = exposure.image_type
 
-        if image_type in ["bias", "dark"]:
-            await self.set_shutter(False)
-        else:
-            await self.set_shutter(True)
+        #if image_type in ["bias", "dark"]:
+            #await self.set_shutter(False)
+        #else:
+            #await self.set_shutter(True)
 
-        self.notify(CameraEvent.EXPOSURE_FLUSHING)
-        self.notify(CameraEvent.EXPOSURE_INTEGRATING)
+#        self.notify(CameraEvent.EXPOSURE_FLUSHING)
+#        self.notify(CameraEvent.EXPOSURE_INTEGRATING)
 
         data = await self.loop.create_task(self.create_synthetic_image())
 
@@ -271,18 +263,18 @@ class SkymakerCamera(
         exposure.data = data
         exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
 
-        await self.set_shutter(False)
+#        await self.set_shutter(False)
 
     async def _post_process_internal(self, exposure: Exposure, **kwargs) -> Exposure:
         self.notify(CameraEvent.EXPOSURE_POST_PROCESSING)
         self.notify(CameraEvent.EXPOSURE_POST_PROCESS_DONE)
         return exposure
 
-    async def _set_shutter_internal(self, shutter_open):
-        self._shutter_position = shutter_open
+    #async def _set_shutter_internal(self, shutter_open):
+        #self._shutter_position = shutter_open
 
-    async def _get_shutter_internal(self):
-        return self._shutter_position
+    #async def _get_shutter_internal(self):
+        #return self._shutter_position
 
     async def _get_binning_internal(self):
         return self._binning
