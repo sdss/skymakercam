@@ -213,10 +213,10 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
 
     async def create_synthetic_image(self):
 
-        self.defocus = (math.fabs((await self._focus_stage.getDeviceEncoderPosition('UM'))["DeviceEncoderPosition"] )/100)**2
+        self.defocus = (math.fabs((await self._focus_stage.getPosition())["Position"] )/100)**2
         self.log(f"defocus {self.defocus}")
 
-        self.kmirror_angle = float((await self._kmirror.getDeviceEncoderPosition('DEG'))["DeviceEncoderPosition"])
+        self.kmirror_angle = float((await self._kmirror.getPosition())["Position"])
         self.log(f"kmirror angle (deg): {self.kmirror_angle}")
 
         tcs_coord_current, self.tcs_pa = await self.tcs_get_position_j2000()
