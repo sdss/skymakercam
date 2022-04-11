@@ -1,6 +1,10 @@
 [tool.poetry]
 name = "sdss-skymakercam"
+<<<<<<< HEAD
 version = "0.0.8"
+=======
+version = "0.0.9"
+>>>>>>> febcffc (fixed rot angle in find guidestars)
 description = "Skymaker camera with sdss-basecam"
 authors = ["Florian Briegel <briegel@mpia.de>"]
 license = "BSD-3-Clause"
