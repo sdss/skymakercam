@@ -233,15 +233,9 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
         self.log(f"separation {separation.arcminute }")
         if separation.arcminute > 18 or not self.guide_stars:
             self.tcs_coord = tcs_coord_current
-<<<<<<< HEAD
-            self.guide_stars = find_guide_stars(self.tcs_coord, np.deg2rad(sky_angle), self.inst_params, remote_catalog=True)
-        else:    
-            self.guide_stars = find_guide_stars(tcs_coord_current, np.deg2rad(sky_angle), self.inst_params, remote_catalog=False, cull_cat=False)
-=======
             self.guide_stars = find_guide_stars(self.tcs_coord, sky_angle, self.inst_params, remote_catalog=True)
         else:    
             self.guide_stars = find_guide_stars(tcs_coord_current, sky_angle, self.inst_params, remote_catalog=False, cull_cat=False)
->>>>>>> febcffc (fixed rot angle in find guidestars)
             
         return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
                                     chip_y=self.guide_stars.chip_yys,
