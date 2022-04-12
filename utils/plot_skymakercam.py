@@ -29,7 +29,7 @@ from keyreader import KeyReader
 from clu import AMQPClient, CommandStatus
 from cluplus.proxy import Proxy, invoke, unpack
 
-from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio, rebin
+from skymakercam.camera import SkymakerCameraSystem, SkymakerCamera, asyncio
 
 
 async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, config="../etc/cameras.yaml"):
@@ -57,7 +57,7 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
     kmirror = Proxy(amqpc, cs._config[camname]['kmirror'])
     await kmirror.start()
     exp = await cam.expose(exptime, camname)
-    p = PlotIt(rebin(exp.data, binning), guiderect, logger=cs.logger.log)
+    p = PlotIt(exp.data, guiderect, logger=cs.logger.log)
 
     keyreader = KeyReader(echo=False, block=False)
     while(True):
@@ -74,7 +74,7 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
             cs.logger.log(logging.DEBUG, f"-{key}-")
 
         exp = await cam.expose(exptime, "LAB TEST")
-        p.update(rebin(exp.data, binning), find_objects)
+        p.update(exp.data, find_objects)
 
 def main():
 

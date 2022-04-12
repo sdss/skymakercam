@@ -36,7 +36,7 @@ from clu.model import Model
 from basecam import BaseCamera, CameraSystem, Exposure
 #from basecam.actor import CameraActor
 from basecam.events import CameraEvent
-from basecam.mixins import CoolerMixIn, ExposureTypeMixIn, ImageAreaMixIn, ShutterMixIn
+from basecam.mixins import CoolerMixIn, ExposureTypeMixIn, ImageAreaMixIn, ShutterMixIn, CoolerMixIn
 from basecam.notifier import EventListener
 from basecam.utils import cancel_task
 
@@ -55,12 +55,6 @@ from skymakercam.starimage import find_guide_stars, make_synthetic_image
 
 __all__ = ['SkymakerCameraSystem', 'SkymakerCamera']
 
-
-def rebin(arr, bin):
-    new_shape=[int(arr.shape[0]/bin), int(arr.shape[1]/bin)]
-    shape = (new_shape[0], arr.shape[0] // new_shape[0],
-             new_shape[1], arr.shape[1] // new_shape[1])
-    return arr.reshape(shape).sum(-1).sum(1)
 
 EXPOSURE_DIR = tempfile.TemporaryDirectory()
 
@@ -94,7 +88,7 @@ class SkymakerCameraSystem(CameraSystem):
         return [c.camera_params.get("uid") for c in self.cameras]
 
 
-class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
+class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn):
     """A virtual camera that does not require hardware.
 
     This class is mostly intended for testing and development. It behaves
@@ -154,7 +148,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
         self.sid = Siderostat()
         self.geoloc = Site(name = self.site)
 
-        self.temperature = 25
+        self._temperature = 25
         self._change_temperature_task = None
 
         self._gain = self.config_get('default.gain', 1)
@@ -199,22 +193,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
         await self._kmirror.client.stop()
         await self.amqpc.stop()
 
-    def _status_internal(self):
-        return {"temperature": self.temperature, "cooler": 10.0}
-
-    async def _get_temperature_internal(self):
-        return self.temperature
-
-    async def _set_temperature_internal(self, temperature):
-        async def change_temperature():
-            await asyncio.sleep(0.2)
-            self.temperature = temperature
-
-        await cancel_task(self._change_temperature_task)
-        self._change_temperature_task = self.loop.create_task(change_temperature())
-
     async def create_synthetic_image(self):
-
         self.defocus = (math.fabs((await self._focus_stage.getPosition())["Position"] )/100)**2
         self.log(f"defocus {self.defocus}")
 
@@ -247,6 +226,12 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
                                     defocus=self.defocus)
 
     async def _expose_internal(self, exposure, **kwargs):
+        def rebin(arr, bin):
+            new_shape=[int(arr.shape[0]/bin[0]), int(arr.shape[1]/bin[1])]
+            shape = (new_shape[0], arr.shape[0] // new_shape[0],
+                    new_shape[1], arr.shape[1] // new_shape[1])
+            return arr.reshape(shape).sum(-1).sum(1)
+
 
         image_type = exposure.image_type
 
@@ -255,17 +240,16 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
         #else:
             #await self.set_shutter(True)
 
-#        self.notify(CameraEvent.EXPOSURE_FLUSHING)
-#        self.notify(CameraEvent.EXPOSURE_INTEGRATING)
-
         data = await self.loop.create_task(self.create_synthetic_image())
 
         self.notify(CameraEvent.EXPOSURE_READING)
 
-        exposure.data = data
+        exposure.data = rebin(data, self._binning)
         exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
+        
+        print(exposure.data.shape)
 
-#        await self.set_shutter(False)
+        #await self.set_shutter(False)
 
     async def _post_process_internal(self, exposure: Exposure, **kwargs) -> Exposure:
         self.notify(CameraEvent.EXPOSURE_POST_PROCESSING)
@@ -278,17 +262,33 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn):
     #async def _get_shutter_internal(self):
         #return self._shutter_position
 
+    def _status_internal(self):
+        return {"temperature": self._temperature, "cooler": math.nan}
+
     async def _get_binning_internal(self):
         return self._binning
 
     async def _set_binning_internal(self, hbin, vbin):
         self._binning = (hbin, vbin)
 
+    async def _get_temperature_internal(self):
+        return self._temperature
+
+    async def _set_temperature_internal(self, temperature):
+        async def change_temperature():
+            await asyncio.sleep(0.2)
+            self._temperature = temperature
+
+        await cancel_task(self._change_temperature_task)
+        self._change_temperature_task = self.loop.create_task(change_temperature())
+
     async def _get_image_area_internal(self):
 
         return self._image_area
 
     async def _set_image_area_internal(self, area=None):
+        
+        return # not supported
 
         if area is None:
             self._image_area = (1, self.width, 1, self.height)
