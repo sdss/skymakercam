@@ -20,8 +20,8 @@ import logging
 import time
 import uuid
 
-from astropy.utils import iers
-iers.conf.auto_download = False 
+#from astropy.utils import iers
+#iers.conf.auto_download = False 
 
 from plotit import PlotIt
 from keyreader import KeyReader
