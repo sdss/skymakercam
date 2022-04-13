@@ -138,7 +138,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self._focus_stage = Proxy(self.amqpc, self.config_get('focus_stage', None))
         self.sky_flux = self.config_get('default.sky_flux', 15)
         self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
-        self.exp_time = self.config_get('default.exp_time',5)
+#        self.exp_time = self.config_get('default.exp_time',5)
         
         # we do reuse the AMQPClient
         self._kmirror = Proxy(self.amqpc, self.config_get('kmirror', None))
@@ -193,7 +193,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         await self._kmirror.client.stop()
         await self.amqpc.stop()
 
-    async def create_synthetic_image(self):
+    async def create_synthetic_image(self, exposure):
         self.defocus = (math.fabs((await self._focus_stage.getPosition())["Position"] )/100)**2
         self.log(f"defocus {self.defocus}")
 
@@ -220,12 +220,13 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
                                     chip_y=self.guide_stars.chip_yys,
                                     gmag=self.guide_stars.mags,
                                     inst=self.inst_params,
-                                    exp_time=self.exp_time,
+                                    exp_time=exposure.exptime,
                                     seeing_arcsec=self.seeing_arcsec,
                                     sky_flux=self.sky_flux,
                                     defocus=self.defocus)
 
     async def _expose_internal(self, exposure, **kwargs):
+
         def rebin(arr, bin):
             new_shape=[int(arr.shape[0]/bin[0]), int(arr.shape[1]/bin[1])]
             shape = (new_shape[0], arr.shape[0] // new_shape[0],
@@ -240,7 +241,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         #else:
             #await self.set_shutter(True)
 
-        data = await self.loop.create_task(self.create_synthetic_image())
+        data = await self.loop.create_task(self.create_synthetic_image(exposure))
 
         self.notify(CameraEvent.EXPOSURE_READING)
 
