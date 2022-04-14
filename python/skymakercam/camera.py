@@ -245,10 +245,11 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
 
         self.notify(CameraEvent.EXPOSURE_READING)
 
-        exposure.data = rebin(data, self._binning)
+        # we convert everything to U16 for basecam compatibility
+        exposure.data = rebin(data, self._binning).astype(np.uint16)
         exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
         
-        print(exposure.data.shape)
+#        print(exposure.data.shape)
 
         #await self.set_shutter(False)
 
