@@ -3,12 +3,13 @@ import numpy as np
 r_outer = 44.5 / 2     # mm, outer radius (constrained by IFU/chip separation, defines the telescope FoV)
                        # taken from SDSS-V_0129_LVMi_PDR.pdf Table 7
 image_scale = 8.92     # 1arcsec in microns from SDSS-V_0129_LVMi_PDR.pdf Table 7
-pix_scale = 1.01       # arcsec per pixel
+#pix_scale = 1.01       # arcsec per pixel
                     # taken from SDSS-V_0129_LVMi_PDR.pdf Table 13
 a_telescope = np.pi * (16.2 / 2) ** 2
 
 chip_size_pix = [1600, 1100]
-chip_size_mm = [14.4, 10.2] # mm, guide chip height from SDSS-V_0129_LVMi_PDR.pdf Table 13
+#chip_size_mm = [14.4, 10.2] # mm, guide chip height from SDSS-V_0129_LVMi_PDR.pdf Table 13
+chip_size_mm = [image_scale*chip_size_pix[0]/1000, image_scale*chip_size_pix[1]/1000] # mm, guide chip height from SDSS-V_0129_LVMi_PDR.pdf Table 13
 
 bias = 100
 gain = 5
