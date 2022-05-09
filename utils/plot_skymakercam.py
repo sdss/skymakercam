@@ -19,6 +19,7 @@ import sys
 import logging
 import time
 import uuid
+import numpy as np
 
 #from astropy.utils import iers
 #iers.conf.auto_download = False 
@@ -57,6 +58,8 @@ async def plot_skymakercam(exptime, binning, guiderect, camname, verb=False, con
     kmirror = Proxy(amqpc, cs._config[camname]['kmirror'])
     await kmirror.start()
     exp = await cam.expose(exptime, camname)
+    # print(exp.data.dtype)
+    exp.data = exp.data.astype(np.int32)
     p = PlotIt(exp.data, guiderect, logger=cs.logger.log)
 
     keyreader = KeyReader(echo=False, block=False)
