@@ -123,7 +123,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
 
         rmqname = f"proxy-{uuid.uuid4().hex[:8]}"
         self.logger.debug(rmqname)
-        self.amqpc = AMQPClient(name=rmqname)
+        self.amqpc = AMQPClient(name=rmqname, host=self.config_get('rmq.host', 'localhost'))
 
         self._tcs = Proxy(self.amqpc, self.config_get('tcs', None))
         
