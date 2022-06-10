@@ -17,7 +17,7 @@ import uuid
 #from astropy.utils import iers
 #iers.conf.auto_download = False 
 
-from logging import DEBUG
+from logging import DEBUG, WARNING
 
 from typing import cast
 
