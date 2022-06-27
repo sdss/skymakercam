@@ -125,7 +125,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.logger.debug(rmqname)
         self.amqpc = AMQPClient(name=rmqname, host=self.config_get('rmq.host', 'localhost'))
 
-        self._tcs = Proxy(self.amqpc, self.config_get('tcs', None))
+        self._tcs = Proxy(self.config_get('tcs', None))
         
         self.tcs_coord = None
         self.tcs_pa = 0
@@ -135,13 +135,13 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.guide_stars = None
         
         # we do reuse the AMQPClient
-        self._focus_stage = Proxy(self.amqpc, self.config_get('focus_stage', None))
+        self._focus_stage = Proxy(self.config_get('focus_stage', None))
         self.sky_flux = self.config_get('default.sky_flux', 15)
         self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
 #        self.exp_time = self.config_get('default.exp_time',5)
         
         # we do reuse the AMQPClient
-        self._kmirror = Proxy(self.amqpc, self.config_get('kmirror', None))
+        self._kmirror = Proxy(self.config_get('kmirror', None))
         self.kmirror_angle = 0.
         
         self.site = self.config_get('site', "LCO")
