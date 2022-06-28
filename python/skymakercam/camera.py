@@ -123,7 +123,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
 
         rmqname = f"proxy-{uuid.uuid4().hex[:8]}"
         self.logger.debug(rmqname)
-        self.amqpc = AMQPClient(name=rmqname, host=self.config_get('rmq.host', 'localhost'))
+        Proxy.__amqpc = AMQPClient(name=rmqname, host=self.config_get('rmq.host', 'localhost'))
 
         self._tcs = Proxy(self.config_get('tcs', None))
         
@@ -173,7 +173,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
     async def _connect_internal(self, **connection_params):
         self.logger.debug(f"connecting ...")
         
-        await self.amqpc.start()
+#        await self.amqpc.start()
         await self._tcs.start()
         await self._focus_stage.start()
         await self._kmirror.start()
@@ -191,7 +191,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         await self._tcs.client.stop()
         await self._focus_stage.client.stop()
         await self._kmirror.client.stop()
-        await self.amqpc.stop()
+#        await self.amqpc.stop()
 
     async def create_synthetic_image(self, exposure):
         self.defocus = (math.fabs((await self._focus_stage.getPosition())["Position"] )/100)**2
