@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sdss-skymakercam"
-version = "0.0.18"
+version = "0.0.19"
 description = "Skymaker camera with sdss-basecam"
 authors = ["Florian Briegel <briegel@mpia.de>"]
 license = "BSD-3-Clause"
@@ -16,6 +16,7 @@ classifiers = [
 	"Programming Language :: Python :: 3.7",
 	"Programming Language :: Python :: 3.8",
 	"Programming Language :: Python :: 3.9",
+	"Programming Language :: Python :: 3.10",
     "Topic :: Documentation :: Sphinx",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
@@ -33,7 +34,7 @@ plotloop = "utils.plotloop:main"
 proto = "proto.__main__:proto"
 
 [tool.poetry.dependencies]
-python = ">3.7,<3.10"
+python = ">3.7,<4"
 click-default-group = "^1.2.2"
 daemonocle = "^1.1.1"
 sdss-tree = ">=2.15.2"
