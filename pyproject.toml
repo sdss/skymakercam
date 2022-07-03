@@ -13,7 +13,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Natural Language :: English",
     "Operating System :: OS Independent",
-	"Programming Language :: Python :: 3.7",
 	"Programming Language :: Python :: 3.8",
 	"Programming Language :: Python :: 3.9",
 	"Programming Language :: Python :: 3.10",
@@ -34,7 +33,7 @@ plotloop = "utils.plotloop:main"
 proto = "proto.__main__:proto"
 
 [tool.poetry.dependencies]
-python = ">3.7,<4"
+python = ">=3.8,<=3.10"
 click-default-group = "^1.2.2"
 daemonocle = "^1.1.1"
 sdss-tree = ">=2.15.2"
