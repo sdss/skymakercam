@@ -174,14 +174,12 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
     async def _connect_internal(self, **connection_params):
         self.logger.debug(f"connecting ...")
         
-#        await self.amqpc.start()
         await self._tcs.start()
         await self._focus_stage.start()
         await self._kmirror.start()
 
-        self.tcs_coord, self.tcs_pa = await self.tcs_get_position_j2000()
-
-        self.logger.debug(f"{self.tcs_coord}")
+        self.tcs_coord = SkyCoord(ra=0.0*u.hour, dec=0.0*u.deg)
+        self.tcs_pa = 0.0
 
         return True
 
@@ -192,7 +190,6 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         await self._tcs.client.stop()
         await self._focus_stage.client.stop()
         await self._kmirror.client.stop()
-#        await self.amqpc.stop()
 
     async def create_synthetic_image(self, exposure):
         self.defocus = (math.fabs((await self._focus_stage.getPosition())["Position"] )/100)**2
