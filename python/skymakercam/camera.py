@@ -106,7 +106,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         return g(self.config, key, default)
 
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, scraper_data:dict=None, **kwargs):
 
         super().__init__(*args, **kwargs)
 
@@ -121,6 +121,9 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
             self.log(f"Creating catalog path: {self.inst_params.catalog_path}", WARNING)
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
 
+        self.scraper_data = scraper_data
+
+
         rmqname = f"proxy-{uuid.uuid4().hex[:8]}"
 #        self.logger.debug(f"{rmqname} {self.config_get('rmq.host', 'localhost')}")
         
@@ -134,6 +137,8 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.dec_off = 0.0
 
         self.guide_stars = None
+
+        self.logger.debug("construct")
         
         # we do reuse the AMQPClient
         self._focus_stage = Proxy(self.config_get('focus_stage', None))
@@ -230,6 +235,9 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
             shape = (new_shape[0], arr.shape[0] // new_shape[0],
                     new_shape[1], arr.shape[1] // new_shape[1])
             return arr.reshape(shape).sum(-1).sum(1)
+
+
+        self.logger.debug(str(self.scraper_data))
 
 
         image_type = exposure.image_type
