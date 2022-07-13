@@ -106,7 +106,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         return g(self.config, key, default)
 
 
-    def __init__(self, *args, scraper_data:dict=None, **kwargs):
+    def __init__(self, *args, actor=None, scraper_data:dict=None, **kwargs):
 
         super().__init__(*args, **kwargs)
 
@@ -122,7 +122,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
 
         self.scraper_data = scraper_data
-
+        self.actor = actor
 
         rmqname = f"proxy-{uuid.uuid4().hex[:8]}"
 #        self.logger.debug(f"{rmqname} {self.config_get('rmq.host', 'localhost')}")
