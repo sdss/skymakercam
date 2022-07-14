@@ -20,6 +20,7 @@ import uuid
 from logging import DEBUG, WARNING
 
 from typing import cast
+from types import SimpleNamespace as sn
 
 import numpy as np
 import json
@@ -36,7 +37,7 @@ from clu.model import Model
 from basecam import BaseCamera, CameraSystem, Exposure
 #from basecam.actor import CameraActor
 from basecam.events import CameraEvent
-from basecam.mixins import CoolerMixIn, ExposureTypeMixIn, ImageAreaMixIn, ShutterMixIn, CoolerMixIn
+from basecam.mixins import CoolerMixIn, ExposureTypeMixIn, ImageAreaMixIn, ShutterMixIn
 from basecam.notifier import EventListener
 from basecam.utils import cancel_task
 
@@ -106,7 +107,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         return g(self.config, key, default)
 
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, camera_params = None, **kwargs):
 
         super().__init__(*args, **kwargs)
 
@@ -114,7 +115,10 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.logger.sh.formatter = StreamFormatter(fmt='%(asctime)s %(name)s %(levelname)s %(filename)s:%(lineno)d: \033[1m%(message)s\033[21m') 
         self.logger.debug("construct")
 
-        self.config = kwargs['camera_params']
+        self.config = camera_params
+        self.actor = self.config.get('actor', None)
+        self.scraper_data = self.config.get('scraper_data', {})
+        
         self.inst_params = params_load(f"skymakercam.params.{self.config_get('instpar', None)}")
         self.inst_params.catalog_path = os.path.expandvars(self.config_get('catalog_path', tempfile.TemporaryDirectory()))
         if not os.path.exists(self.inst_params.catalog_path):
@@ -126,23 +130,21 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         
 #        Proxy.setDefaultAmqpc(AMQPClient(name=rmqname, url=os.getenv("RMQ_URL", None)))
 
-        self._tcs = Proxy(self.config_get('tcs', None))
+#        self._tcs = Proxy(self.config_get('tcs', None))
         
-        self.tcs_coord = None
-        self.tcs_pa = 0
-        self.ra_off = 0.0
-        self.dec_off = 0.0
+        self.tcs_coord = SkyCoord(ra=0.0*u.deg, dec=90.0*u.deg)
+        self.tcs_pa = 0.0
 
         self.guide_stars = None
         
         # we do reuse the AMQPClient
-        self._focus_stage = Proxy(self.config_get('focus_stage', None))
+        #self._focus_stage = Proxy(self.config_get('focus_stage', None))
         self.sky_flux = self.config_get('default.sky_flux', 15)
         self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
 #        self.exp_time = self.config_get('default.exp_time',5)
         
         # we do reuse the AMQPClient
-        self._kmirror = Proxy(self.config_get('kmirror', None))
+#        self._kmirror = Proxy(self.config_get('kmirror', None))
         self.kmirror_angle = 0.
         
         self.site = self.config_get('site', "LCO")
@@ -166,20 +168,17 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
 
         self.image_namer.dirname = EXPOSURE_DIR.name
 
-    async def tcs_get_position_j2000(self):
-        status = await self._tcs.status()
-        return SkyCoord(ra=status["ra_j2000_hours"]*u.hour, dec=status["dec_j2000_degs"]*u.deg), status["field_angle_here_degs"]
-
+    #def tcs_get_position_j2000(self):
+        #status = await self._tcs.status()
+        
+        #return SkyCoord(ra=status["ra_j2000_hours"]*u.hour, dec=status["dec_j2000_degs"]*u.deg), status["field_angle_here_degs"]
 
     async def _connect_internal(self, **connection_params):
         self.logger.debug(f"connecting ...")
         
-        await self._tcs.start()
-        await self._focus_stage.start()
-        await self._kmirror.start()
-
-        self.tcs_coord = SkyCoord(ra=0.0*u.hour, dec=0.0*u.deg)
-        self.tcs_pa = 0.0
+        #await self._tcs.start()
+        #await self._focus_stage.start()
+        #await self._kmirror.start()
 
         return True
 
@@ -187,19 +186,31 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         """Close connection to camera.
         """
         self.logger.debug("disconnect")
-        await self._tcs.client.stop()
-        await self._focus_stage.client.stop()
-        await self._kmirror.client.stop()
+        #await self._tcs.client.stop()
+        #await self._focus_stage.client.stop()
+        #await self._kmirror.client.stop()
 
     async def create_synthetic_image(self, exposure):
-        self.defocus = (math.fabs((await self._focus_stage.getPosition())["Position"] )/100)**2
+        #self.defocus = (math.fabs((await self._focus_stage.getPosition())["Position"] )/100)**2
+        #self.log(f"defocus {self.defocus}")
+
+        #self.kmirror_angle = float((await self._kmirror.getPosition())["Position"])
+        #self.log(f"kmirror angle (deg): {self.kmirror_angle}")
+
+        #tcs_coord_current, self.tcs_pa = await self.tcs_get_position_j2000()
+
+        self.defocus = self.scraper_data.get("foc_um", sn(val=0.0)).val
         self.log(f"defocus {self.defocus}")
 
-        self.kmirror_angle = float((await self._kmirror.getPosition())["Position"])
+        self.kmirror_angle = self.scraper_data.get("km_d", sn(val=0.0)).val
         self.log(f"kmirror angle (deg): {self.kmirror_angle}")
 
-        tcs_coord_current, self.tcs_pa = await self.tcs_get_position_j2000()
-        
+        ra = self.scraper_data.get("ra_h", sn(val=0.0)).val
+        dec = self.scraper_data.get("dec_d", sn(val=0.0)).val
+        tcs_coord_current = SkyCoord(ra=ra*u.hour, dec=dec*u.deg)
+
+        self.tcs_pa = self.scraper_data.get("field_angle_d")
+         
         mathar_angle = math.degrees(self.sid.fieldAngle(self.geoloc, Target(tcs_coord_current), None))
         self.log(f"mathar angle (deg): {mathar_angle}")
 
@@ -232,6 +243,8 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
             return arr.reshape(shape).sum(-1).sum(1)
 
 
+        self.logger.debug(f"{self.scraper_data}")
+
         image_type = exposure.image_type
 
         #if image_type in ["bias", "dark"]:
@@ -255,12 +268,6 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.notify(CameraEvent.EXPOSURE_POST_PROCESSING)
         self.notify(CameraEvent.EXPOSURE_POST_PROCESS_DONE)
         return exposure
-
-    #async def _set_shutter_internal(self, shutter_open):
-        #self._shutter_position = shutter_open
-
-    #async def _get_shutter_internal(self):
-        #return self._shutter_position
 
     def _status_internal(self):
         return {"temperature": self._temperature, "cooler": math.nan}
