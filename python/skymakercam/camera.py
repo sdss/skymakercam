@@ -125,7 +125,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
             self.log(f"Creating catalog path: {self.inst_params.catalog_path}", WARNING)
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
 
-        rmqname = f"proxy-{uuid.uuid4().hex[:8]}"
+#        rmqname = f"proxy-{uuid.uuid4().hex[:8]}"
 #        self.logger.debug(f"{rmqname} {self.config_get('rmq.host', 'localhost')}")
         
 #        Proxy.setDefaultAmqpc(AMQPClient(name=rmqname, url=os.getenv("RMQ_URL", None)))
