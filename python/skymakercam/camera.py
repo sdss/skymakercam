@@ -104,7 +104,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
             k = key.split('.', maxsplit=1)
             c = config.get(k[0] if not k[0].isnumeric() else int(k[0]))  # keys can be numeric
             return d if c is None else c if len(k) < 2 else g(c, k[1], d) if type(c) is dict else d
-        return g(self.config, key, default)
+        return g(self.camera_params, key, default)
 
 
     def __init__(self, *args, camera_params = None, **kwargs):
@@ -115,9 +115,8 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.logger.sh.formatter = StreamFormatter(fmt='%(asctime)s %(name)s %(levelname)s %(filename)s:%(lineno)d: \033[1m%(message)s\033[21m') 
         self.logger.debug("construct")
 
-        self.config = camera_params
-        self.actor = self.config.get('actor', None)
-        self.scraper_data = self.config.get('scraper_data', {})
+        self.actor = self.camera_params.get('actor', None)
+        self.scraper_data = self.camera_params.get('scraper_data', {})
         
         self.inst_params = params_load(f"skymakercam.params.{self.config_get('instpar', None)}")
         self.inst_params.catalog_path = os.path.expandvars(self.config_get('catalog_path', tempfile.TemporaryDirectory()))
