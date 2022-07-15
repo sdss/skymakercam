@@ -145,7 +145,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         
         # we do reuse the AMQPClient
 #        self._kmirror = Proxy(self.config_get('kmirror', None))
-        self.kmirror_angle = 0.
+#        self.kmirror_angle = 0.
         
         self.site = self.config_get('site', "LCO")
         self.sid = Siderostat()
@@ -190,32 +190,22 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         #await self._focus_stage.client.stop()
         #await self._kmirror.client.stop()
 
-    async def create_synthetic_image(self, exposure):
-        #self.defocus = (math.fabs((await self._focus_stage.getPosition())["Position"] )/100)**2
-        #self.log(f"defocus {self.defocus}")
+    async def create_synthetic_image(self, exposure, ra_h=0.0, dec_d=90.0, pa_d=0.0, km_d=0.0, foc_um=0.0, **kwargs):
 
-        #self.kmirror_angle = float((await self._kmirror.getPosition())["Position"])
-        #self.log(f"kmirror angle (deg): {self.kmirror_angle}")
+        self.log(f"focus um {foc_um}")
+        defocus = math.fabs(foc_um)/100**2
+        self.log(f"defocus {defocus}")
 
-        #tcs_coord_current, self.tcs_pa = await self.tcs_get_position_j2000()
+        self.log(f"kmirror angle (deg): {km_d}")
 
-        self.defocus = self.scraper_data.get("foc_um", sn(val=0.0)).val
-        self.log(f"defocus {self.defocus}")
+        tcs_coord_current = SkyCoord(ra=ra_h*u.hour, dec=dec_d*u.deg)
+        self.log(f"SkyCoord: {tcs_coord_current}")
 
-        self.kmirror_angle = self.scraper_data.get("km_d", sn(val=0.0)).val
-        self.log(f"kmirror angle (deg): {self.kmirror_angle}")
+        mathar_angle_d = math.degrees(self.sid.fieldAngle(self.geoloc, Target(tcs_coord_current), None))
+        self.log(f"mathar angle (deg): {mathar_angle_d}")
 
-        ra = self.scraper_data.get("ra_h", sn(val=0.0)).val
-        dec = self.scraper_data.get("dec_d", sn(val=0.0)).val
-        tcs_coord_current = SkyCoord(ra=ra*u.hour, dec=dec*u.deg)
-
-        self.tcs_pa = self.scraper_data.get("field_angle_d")
-         
-        mathar_angle = math.degrees(self.sid.fieldAngle(self.geoloc, Target(tcs_coord_current), None))
-        self.log(f"mathar angle (deg): {mathar_angle}")
-
-        sky_angle = self.kmirror_angle - mathar_angle
-        self.log(f"sky angle (deg): {sky_angle}")
+        sky_angle = km_d - mathar_angle_d
+        self.log(f"sky angle (deg): {sky_angle} {pa_d}")
 
         separation = self.tcs_coord.separation(tcs_coord_current)
         self.log(f"separation {separation.arcminute }")
@@ -232,7 +222,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
                                     exp_time=exposure.exptime,
                                     seeing_arcsec=self.seeing_arcsec,
                                     sky_flux=self.sky_flux,
-                                    defocus=self.defocus)
+                                    defocus=defocus)
 
     async def _expose_internal(self, exposure, **kwargs):
 
@@ -243,7 +233,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
             return arr.reshape(shape).sum(-1).sum(1)
 
 
-        self.logger.debug(f"{self.scraper_data}")
+#        self.logger.debug(f"kwargs {kwargs}")
 
         image_type = exposure.image_type
 
@@ -252,7 +242,19 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         #else:
             #await self.set_shutter(True)
 
-        data = await self.loop.create_task(self.create_synthetic_image(exposure))
+        params = {k: v.val for k,v in self.scraper_data.items()}
+        
+        if kmirror_angle := kwargs.get("km_d", 0.0):
+            params["km_d"] = kmirror_angle
+
+        if ra_h := kwargs.get("ra_h", None):
+            if dec_d := kwargs.get("dec_d", None):
+                params["ra_h"] = ra_h
+                params["dec_d"] = dec_d
+
+#        self.log(f"params {params}")
+
+        data = await self.loop.create_task(self.create_synthetic_image(exposure, **params))
 
         self.notify(CameraEvent.EXPOSURE_READING)
 
