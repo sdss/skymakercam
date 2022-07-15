@@ -114,7 +114,9 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.logger.sh.setLevel(DEBUG)
         self.logger.sh.formatter = StreamFormatter(fmt='%(asctime)s %(name)s %(levelname)s %(filename)s:%(lineno)d: \033[1m%(message)s\033[21m') 
         self.logger.debug("construct")
+#        self.logger.debug(f"{camera_params}")
 
+        self.camera_params = camera_params
         self.actor = self.camera_params.get('actor', None)
         self.scraper_data = self.camera_params.get('scraper_data', {})
         
