@@ -13,6 +13,7 @@ import tempfile
 import pathlib
 import math
 import uuid
+import abc
 
 #from astropy.utils import iers
 #iers.conf.auto_download = False 
@@ -40,6 +41,8 @@ from basecam.events import CameraEvent
 from basecam.mixins import CoolerMixIn, ExposureTypeMixIn, ImageAreaMixIn, ShutterMixIn
 from basecam.notifier import EventListener
 from basecam.utils import cancel_task
+from basecam.models import FITSModel, Card, WCSCards, basic_fits_model
+from astropy import wcs
 
 from lvmtipo.site import Site
 from lvmtipo.siderostat import Siderostat
@@ -88,8 +91,34 @@ class SkymakerCameraSystem(CameraSystem):
         """
         return [c.camera_params.get("uid") for c in self.cameras]
 
+class GainMixIn(object, metaclass=abc.ABCMeta):
+    """A mixin that provides manual control over the camera gain."""
 
-class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn):
+    @abc.abstractmethod
+    async def _set_gain_internal(self, gain):
+        """Internal method to set the gain."""
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    async def _get_gain_internal(self):
+        """Internal method to get the gain."""
+
+        raise NotImplementedError
+
+    async def setgain(self, gain):
+        """Seta the  gain of the camera."""
+
+        return await self._set_gain_internal(gain)
+
+    async def getgain(self):
+        """Gets the gain of the camera."""
+
+        return await self._get_gain_internal()
+
+
+
+class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn, GainMixIn):
     """A virtual camera that does not require hardware.
 
     This class is mostly intended for testing and development. It behaves
@@ -138,7 +167,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
 
         self.guide_stars = None
         
-        # we do reuse the AMQPClient
+        ## we do reuse the AMQPClient
         #self._focus_stage = Proxy(self.config_get('focus_stage', None))
         self.sky_flux = self.config_get('sky_flux', 15)
         self.seeing_arcsec = self.config_get('seeing_arcsec', 3.5)
@@ -152,23 +181,25 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.sid = Siderostat()
         self.geoloc = Site(name = self.site)
 
-        self._temperature = 25
-        self._change_temperature_task = None
+        self.temperature = 25
+        self._changetemperature_task = None
 
-        self._gain = self.config_get('gain', 1)
-        self._binning = self.config_get('binning', [1, 1])
+        self.gain = self.config_get('gain', 1)
+        self.binning = self.config_get('binning', [1, 1])
         self._focus_offset = self.config_get('focus_offset', 42)
+
+        self.cam_type = "skymakercam"
+        self.cam_temp = -1
 
         self.log(f"{self.inst_params.chip_size_pix}")
         
         self.width = self.inst_params.chip_size_pix[0]
         self.height = self.inst_params.chip_size_pix[1]
 
-        self._image_area = (1, self.inst_params.chip_size_pix[0], 1, self.inst_params.chip_size_pix[1])
+        self.image_area = (1, self.inst_params.chip_size_pix[0], 1, self.inst_params.chip_size_pix[1])
 
         self.data = False
 
-        self.image_namer.dirname = EXPOSURE_DIR.name
 
     #def tcs_get_position_j2000(self):
         #status = await self._tcs.status()
@@ -261,7 +292,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self.notify(CameraEvent.EXPOSURE_READING)
 
         # we convert everything to U16 for basecam compatibility
-        exposure.data = rebin(data, self._binning).astype(np.uint16)
+        exposure.data = rebin(data, self.binning).astype(np.uint16)
         exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
         
 #        print(exposure.data.shape)
@@ -274,35 +305,42 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         return exposure
 
     def _status_internal(self):
-        return {"temperature": self._temperature, "cooler": math.nan}
+        return {"temperature": self.temperature, "cooler": math.nan}
 
     async def _get_binning_internal(self):
-        return self._binning
+        return self.binning
 
     async def _set_binning_internal(self, hbin, vbin):
-        self._binning = (hbin, vbin)
+        self.binning = (hbin, vbin)
 
     async def _get_temperature_internal(self):
-        return self._temperature
+        return self.temperature
 
     async def _set_temperature_internal(self, temperature):
-        async def change_temperature():
+        async def changetemperature():
             await asyncio.sleep(0.2)
-            self._temperature = temperature
+            self.temperature = temperature
 
-        await cancel_task(self._change_temperature_task)
-        self._change_temperature_task = self.loop.create_task(change_temperature())
+        await cancel_task(self._changetemperature_task)
+        self._changetemperature_task = self.loop.create_task(changetemperature())
 
     async def _get_image_area_internal(self):
 
-        return self._image_area
+        return self.image_area
 
     async def _set_image_area_internal(self, area=None):
         
         return # not supported
 
         if area is None:
-            self._image_area = (1, self.width, 1, self.height)
+            self.image_area = (1, self.width, 1, self.height)
         else:
-            self._image_area = area
+            self.image_area = area
 
+    async def _set_gain_internal(self, gain):
+        """Internal method to set the gain."""
+        self.gain = gain
+
+    async def _get_gain_internal(self):
+        """Internal method to get the gain."""
+        return self.gain
