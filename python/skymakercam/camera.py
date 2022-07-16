@@ -140,8 +140,8 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         
         # we do reuse the AMQPClient
         #self._focus_stage = Proxy(self.config_get('focus_stage', None))
-        self.sky_flux = self.config_get('default.sky_flux', 15)
-        self.seeing_arcsec = self.config_get('default.seeing_arcsec', 3.5)
+        self.sky_flux = self.config_get('sky_flux', 15)
+        self.seeing_arcsec = self.config_get('seeing_arcsec', 3.5)
 #        self.exp_time = self.config_get('default.exp_time',5)
         
         # we do reuse the AMQPClient
@@ -155,8 +155,9 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
         self._temperature = 25
         self._change_temperature_task = None
 
-        self._gain = self.config_get('default.gain', 1)
-        self._binning = self.config_get('default.binning', [1, 1])
+        self._gain = self.config_get('gain', 1)
+        self._binning = self.config_get('binning', [1, 1])
+        self._focus_offset = self.config_get('focus_offset', 42)
 
         self.log(f"{self.inst_params.chip_size_pix}")
         
@@ -194,7 +195,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn)
     async def create_synthetic_image(self, exposure, ra_h=0.0, dec_d=90.0, pa_d=0.0, km_d=0.0, foc_um=0.0, **kwargs):
 
         self.log(f"focus um {foc_um}")
-        defocus = math.fabs(foc_um/100)**2
+        defocus = math.fabs((foc_um+self._focus_offset)/100)**2
         self.log(f"defocus {defocus}")
 
         self.log(f"kmirror angle (deg): {km_d}")
