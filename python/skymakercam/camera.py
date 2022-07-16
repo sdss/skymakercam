@@ -19,7 +19,6 @@ import abc
 #iers.conf.auto_download = False 
 
 from logging import DEBUG, WARNING
-from functools import partial
 
 from typing import cast
 from types import SimpleNamespace as sn
@@ -53,7 +52,7 @@ from lvmtipo.target import Target
 from skymakercam.params import load as params_load
 from cluplus.proxy import Proxy, ProxyPartialInvokeException, invoke, unpack
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
 from skymakercam.starimage import find_guide_stars, make_synthetic_image
@@ -185,6 +184,10 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.temperature = 25
         self._changetemperature_task = None
 
+        self.pixsize = self.config_get('pixsize', -999)
+        self.pixscale = self.config_get('pixscale', -999)
+        self.arcsec_per_pix = self.pixsize / self.pixscale
+
         self.gain = self.config_get('gain', 1)
         self.binning = self.config_get('binning', [1, 1])
         self._focus_offset = self.config_get('focus_offset', 42)
@@ -306,8 +309,25 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         # we convert everything to U16 for basecam compatibility
         exposure.data = rebin(data, self.binning).astype(np.uint16)
         exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
-        
-#        print(exposure.data.shape)
+
+        exposure.wcs = wcs.WCS()
+        exposure.wcs.wcs.cdelt = np.array([-0.066667, 0.066667])
+        self.log(f"{params} {self.scraper_data}")
+        exposure.wcs.wcs.crval = [Angle(params["ra_h"]*u.hour).deg, Angle(params["dec_d"]*u.deg).deg]
+        exposure.wcs.wcs.cunit = ["deg", "deg"]
+        exposure.wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+
+        # The distance from the long edge of the FLIR camera to the center
+        # of the focus (fiber) is 7.144+4.0 mm according to SDSS-V_0110 figure 6
+        # and 11.14471 according to figure 3-1 of LVMi-0081
+        # For the *w or *e cameras the pixel row 1 (in FITS) is that far
+        # away in the y-coordinate and in the middle of the x-coordinate.
+        # For the *c cameras at the fiber bundle we assume them to be in the beam center.
+        crpix1 = self.width/self.binning[0] / 2
+        crpix2 = 11.14471 * 1000.0 / self.pixsize
+        exposure.wcs.wcs.crpix = [crpix1, crpix2]
+
+
 
         #await self.set_shutter(False)
 
