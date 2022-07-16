@@ -290,19 +290,19 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         #else:
             #await self.set_shutter(True)
 
-        params = {k: v.val for k,v in self.scraper_data.items()}
+        exposure.camera_params = {k: v.val for k,v in self.scraper_data.items()}
         
         if kmirror_angle := kwargs.get("km_d", 0.0):
-            params["km_d"] = kmirror_angle
+            exposure.camera_params["km_d"] = kmirror_angle
 
         if ra_h := kwargs.get("ra_h", None):
             if dec_d := kwargs.get("dec_d", None):
-                params["ra_h"] = ra_h
-                params["dec_d"] = dec_d
+                exposure.camera_params["ra_h"] = ra_h
+                exposure.camera_params["dec_d"] = dec_d
 
-        self.log(f"params {params}")
+        self.log(f"params {exposure.camera_params}")
 
-        data = await self.create_synthetic_image(exposure, **params)
+        data = await self.create_synthetic_image(exposure, **exposure.camera_params)
 
         self.notify(CameraEvent.EXPOSURE_READING)
 
@@ -310,10 +310,11 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         exposure.data = rebin(data, self.binning).astype(np.uint16)
         exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
 
+        # https://learn.astropy.org/tutorials/synthetic-images.html
+
         exposure.wcs = wcs.WCS()
-        exposure.wcs.wcs.cdelt = np.array([-0.066667, 0.066667])
-        self.log(f"{params} {self.scraper_data}")
-        exposure.wcs.wcs.crval = [Angle(params["ra_h"]*u.hour).deg, Angle(params["dec_d"]*u.deg).deg]
+        exposure.wcs.wcs.cdelt = np.array([1.,1.])
+        exposure.wcs.wcs.crval = [Angle(exposure.camera_params.get("ra_h", 0.0)*u.hour).deg, Angle(exposure.camera_params.get("dec_d", 90.0)*u.deg).deg]
         exposure.wcs.wcs.cunit = ["deg", "deg"]
         exposure.wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
 
@@ -327,7 +328,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         crpix2 = 11.14471 * 1000.0 / self.pixsize
         exposure.wcs.wcs.crpix = [crpix1, crpix2]
 
-
+        self.arcsec_per_pix
 
         #await self.set_shutter(False)
 
