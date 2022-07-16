@@ -19,6 +19,7 @@ import abc
 #iers.conf.auto_download = False 
 
 from logging import DEBUG, WARNING
+from functools import partial
 
 from typing import cast
 from types import SimpleNamespace as sn
@@ -247,15 +248,26 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
             self.guide_stars = find_guide_stars(self.tcs_coord, sky_angle, self.inst_params, remote_catalog=True)
         else:    
             self.guide_stars = find_guide_stars(tcs_coord_current, sky_angle, self.inst_params, remote_catalog=False, cull_cat=False)
-            
-        return make_synthetic_image(chip_x=self.guide_stars.chip_xxs,
-                                    chip_y=self.guide_stars.chip_yys,
-                                    gmag=self.guide_stars.mags,
-                                    inst=self.inst_params,
-                                    exp_time=exposure.exptime,
-                                    seeing_arcsec=self.seeing_arcsec,
-                                    sky_flux=self.sky_flux,
-                                    defocus=defocus)
+
+
+        #loop = asyncio.get_event_loop()
+        #future = loop.run_in_executor(None, self.create_synthetic_image(exposure, **params))
+        #data = await future
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, 
+            lambda: make_synthetic_image(
+                chip_x=self.guide_stars.chip_xxs,
+                chip_y=self.guide_stars.chip_yys,
+                gmag=self.guide_stars.mags,
+                inst=self.inst_params,
+                exp_time=exposure.exptime,
+                seeing_arcsec=self.seeing_arcsec,
+                sky_flux=self.sky_flux,
+                defocus=defocus
+            )
+        )
+        
 
     async def _expose_internal(self, exposure, **kwargs):
 
@@ -287,7 +299,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         self.log(f"params {params}")
 
-        data = await self.loop.create_task(self.create_synthetic_image(exposure, **params))
+        data = await self.create_synthetic_image(exposure, **params)
 
         self.notify(CameraEvent.EXPOSURE_READING)
 
