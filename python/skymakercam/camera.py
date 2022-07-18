@@ -133,7 +133,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
             k = key.split('.', maxsplit=1)
             c = config.get(k[0] if not k[0].isnumeric() else int(k[0]))  # keys can be numeric
             return d if c is None else c if len(k) < 2 else g(c, k[1], d) if type(c) is dict else d
-        return g(self.camera_params, key, default)
+        return g(self.params, key, default)
 
 
     def __init__(self, *args, camera_params = None, **kwargs):
@@ -145,9 +145,9 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.logger.debug("construct")
 #        self.logger.debug(f"{camera_params}")
 
-        self.camera_params = camera_params
-        self.actor = self.camera_params.get('actor', None)
-        self.scraper_data = self.camera_params.get('scraper_data', {})
+        self.params = camera_params
+        self.actor = self.params.get('actor', None)
+        self.scraper_data = self.params.get('scraper_data', {})
         
         self.inst_params = params_load(f"skymakercam.params.{self.config_get('instpar', None)}")
         self.inst_params.catalog_path = os.path.expandvars(self.config_get('catalog_path', tempfile.TemporaryDirectory()))
@@ -290,19 +290,19 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         #else:
             #await self.set_shutter(True)
 
-        exposure.camera_params = {k: v.val for k,v in self.scraper_data.items()}
+        self.params = {k: v.val for k,v in self.scraper_data.items()}
         
         if kmirror_angle := kwargs.get("km_d", 0.0):
-            exposure.camera_params["km_d"] = kmirror_angle
+            self.params["km_d"] = kmirror_angle
 
         if ra_h := kwargs.get("ra_h", None):
             if dec_d := kwargs.get("dec_d", None):
-                exposure.camera_params["ra_h"] = ra_h
-                exposure.camera_params["dec_d"] = dec_d
+                self.params["ra_h"] = ra_h
+                self.params["dec_d"] = dec_d
 
-        self.log(f"params {exposure.camera_params}")
+        self.log(f"params {self.params}")
 
-        data = await self.create_synthetic_image(exposure, **exposure.camera_params)
+        data = await self.create_synthetic_image(exposure, **self.params)
 
         self.notify(CameraEvent.EXPOSURE_READING)
 
@@ -314,7 +314,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         exposure.wcs = wcs.WCS()
         exposure.wcs.wcs.cdelt = np.array([1.,1.])
-        exposure.wcs.wcs.crval = [Angle(exposure.camera_params.get("ra_h", 0.0)*u.hour).deg, Angle(exposure.camera_params.get("dec_d", 90.0)*u.deg).deg]
+        exposure.wcs.wcs.crval = [Angle(self.params.get("ra_h", 0.0)*u.hour).deg, Angle(self.params.get("dec_d", 90.0)*u.deg).deg]
         exposure.wcs.wcs.cunit = ["deg", "deg"]
         exposure.wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
 
