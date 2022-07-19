@@ -29,12 +29,11 @@ class Guidestars:
         self.cats2 = cats2
 
 
-def find_guide_stars(c, pa, inst, plotflag=False, remote_catalog=False, east_is_right=True, cull_cat=True, recycled_cat = None, return_focal_plane_coords=False, remote_maglim=None):
+def find_guide_stars(c, pa, inst, remote_catalog=False, east_is_right=True, cull_cat=True, recycled_cat = None, return_focal_plane_coords=False, remote_maglim=None):
     # function to figure out which (suitable) guide stars are on the guider chip
     # input:
     # c in SkyCoord;          contains ra & dec of IFU field center
     # pa in degrees;          position angle (east of north) for the guider 
-    # plotflag = True;        shows a scatter plot of stars & those selected
     # remote_catalog = True;  queries the GAIA TAP to obtain a catalog on the fly
     # east_is_right = True;   accounts for the handedness fip resulting from the 5 mirror configuration
     #                         should be set to FALSE for the spectrophotometric telescope, which has only 2 mirrors
@@ -98,24 +97,6 @@ def find_guide_stars(c, pa, inst, plotflag=False, remote_catalog=False, east_is_
     t1 = time.time()
     #print("Scale conversion complete. It took me {:.1f} s".format(t1-t0))
     #show some star positions in focal plane units
-    if plotflag:
-        fig, ax1 = plt.subplots(figsize=(12,12))
-        #fig = plt.figure(figsize=(6,6)) # default is (8,6)
-        ax1.plot(dd_x_mm,dd_y_mm,"k.",ms=2)
-        ax1.axis('equal')
-        ax1.set_xlabel('x-offset [mm]')
-        ax1.set_ylabel('y-offset [mm]')
-        ax1.set_ylim(min(dd_y_mm),max(dd_y_mm))
-        ax1.set_xlim(min(dd_x_mm),max(dd_x_mm))
-        ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-        ax2.set_ylabel('dec [deg]')
-        ax2.set_ylim(min(cats2['dec']),max(cats2['dec']))
-        ax3 = ax2.twiny()
-        ax3.set_xlabel('ra [deg]')
-        if east_is_right:
-            ax3.set_xlim(min(cats2['ra']),max(cats2['ra']))
-        else:
-            ax3.set_xlim(max(cats2['ra']),min(cats2['ra']))
 
     if return_focal_plane_coords:
         return dd_x_mm,dd_y_mm,cats2
@@ -125,9 +106,7 @@ def find_guide_stars(c, pa, inst, plotflag=False, remote_catalog=False, east_is_
     iii=np.equal(selection_on_chip,1)
     
     #overplot the identified guide stars positions
-    if plotflag:
-        iii=np.equal(selection_on_chip,1)
-    
+
     selection_not_crowded = (selection_on_chip==True)
     if inst.min_neighbour_distance>0:
         ctr=0
@@ -146,13 +125,6 @@ def find_guide_stars(c, pa, inst, plotflag=False, remote_catalog=False, east_is_
     
     #print("After crowding check: ",np.sum(iii),len(iii))
     #overplot the final cleaned guide star positions
-    if plotflag:
-        #iii=np.equal(flags,1)
-        #print('after checking for crowding: ',np.sum(iii))
-        ax1.plot(dd_x_mm[iii],dd_y_mm[iii],"c.",ms=4)
-        #ax1.plot(dd_x_mm[iii][mags<12],dd_y_mm[iii][mags<12],"b.",ms=6)
-        plt.show()
-    
     #sub select the guide stars that fall on the guide chip, return their properties
     ras=cats2['ra'][iii]
     decs=cats2['dec'][iii]    
@@ -177,9 +149,9 @@ def find_guide_stars_auto(input_touple, inst, folder = "/guide_star_search_resul
 
     for pa in [0, 60, 120, 180, 240, 300]:
         if pa==0:
-           culled_cat = get_cat_using_healpix2(c, plotflag=False, inst=inst)
+           culled_cat = get_cat_using_healpix2(c, inst=inst)
         ras,decs,dd_x_mm,dd_y_mm,chip_xxs,chip_yys,mags,culled_cat = \
-           find_guide_stars(c, pa=pa, plotflag=False, recycled_cat=culled_cat, inst=inst)    
+           find_guide_stars(c, pa=pa, recycled_cat=culled_cat, inst=inst)    
 
         output = np.stack((ras, decs, dd_x_mm, dd_y_mm, chip_xxs, chip_yys, mags), axis=1)
         

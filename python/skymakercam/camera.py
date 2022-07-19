@@ -308,13 +308,14 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         # we convert everything to U16 for basecam compatibility
         exposure.data = rebin(data, self.binning).astype(np.uint16)
-        exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
+#        exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
+        exposure.obstime = astropy.time.Time.now()
 
         # https://learn.astropy.org/tutorials/synthetic-images.html
 
         exposure.wcs = wcs.WCS()
         exposure.wcs.wcs.cdelt = np.array([1.,1.])
-        exposure.wcs.wcs.crval = [Angle(self.params.get("ra_h", 0.0)*u.hour).deg, Angle(self.params.get("dec_d", 90.0)*u.deg).deg]
+        exposure.wcs.wcs.crval = [self.params.get("ra_h", 0.0)*15, self.params.get("dec_d", 90.0)]
         exposure.wcs.wcs.cunit = ["deg", "deg"]
         exposure.wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
 
@@ -328,7 +329,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         crpix2 = 11.14471 * 1000.0 / self.pixsize
         exposure.wcs.wcs.crpix = [crpix1, crpix2]
 
-        self.arcsec_per_pix
+#        self.arcsec_per_pix
 
         #await self.set_shutter(False)
 
