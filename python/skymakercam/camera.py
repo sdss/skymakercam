@@ -21,7 +21,7 @@ import abc
 from logging import DEBUG, WARNING
 
 from typing import cast
-from types import SimpleNamespace as sn
+from collections import namedtuple
 
 import numpy as np
 import json
@@ -117,6 +117,10 @@ class GainMixIn(object, metaclass=abc.ABCMeta):
         return await self._get_gain_internal()
 
 
+Point = namedtuple('Point', ['x0', 'y0'])
+Size = namedtuple('Size', ['wd', 'ht'])
+Rect = namedtuple('Rect', ['x0', 'y0', 'wd', 'ht'])
+
 #class ScraperParamMixIn(object):
     #"""A mixin that provides manual control over the camera gain."""
 
@@ -165,31 +169,28 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
     """
 
-    def config_get(self, key, default=None):
-        """ DOESNT work for keys with dots !!! """
-        def g(config, key, d=None):
-            k = key.split('.', maxsplit=1)
-            c = config.get(k[0] if not k[0].isnumeric() else int(k[0]))  # keys can be numeric
-            return d if c is None else c if len(k) < 2 else g(c, k[1], d) if type(c) is dict else d
-        return g(self.config, key, default)
+    #def config_get(self, key, default=None):
+        #""" DOESNT work for keys with dots !!! """
+        #def g(config, key, d=None):
+            #k = key.split('.', maxsplit=1)
+            #c = config.get(k[0] if not k[0].isnumeric() else int(k[0]))  # keys can be numeric
+            #return d if c is None else c if len(k) < 2 else g(c, k[1], d) if type(c) is dict else d
+        #return g(self.config, key, default)
 
 
-    def __init__(self, *args, camera_params = None, **kwargs):
+    def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
         self.logger.sh.setLevel(DEBUG)
         self.logger.sh.formatter = StreamFormatter(fmt='%(asctime)s %(name)s %(levelname)s %(filename)s:%(lineno)d: \033[1m%(message)s\033[21m') 
-        self.logger.debug("construct")
-#        self.logger.debug(f"{camera_params}")
 
 
-        self.config = camera_params
 #        self.actor = self.params.get('actor', None)
-        self.scraper_store = self.config.get('scraper_store', {})
+        self.scraper_store = self.camera_params.get('scraper_store', {})
 
-        self.inst_params = params_load(f"skymakercam.params.{self.config_get('instpar', None)}")
-        self.inst_params.catalog_path = os.path.expandvars(self.config_get('catalog_path', tempfile.TemporaryDirectory()))
+        self.inst_params = params_load(f"skymakercam.params.{self.camera_params.get('instpar', None)}")
+        self.inst_params.catalog_path = os.path.expandvars(self.camera_params.get('catalog_path', tempfile.TemporaryDirectory()))
         if not os.path.exists(self.inst_params.catalog_path):
             self.log(f"Creating catalog path: {self.inst_params.catalog_path}", WARNING)
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
@@ -199,25 +200,31 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         self.guide_stars = None
         
-        self.sky_flux = self.config_get('sky_flux', 15)
-        self.seeing_arcsec = self.config_get('seeing_arcsec', 3.5)
-#        self.exp_time = self.config_get('default.exp_time',5)
+        self.sky_flux = self.camera_params.get('sky_flux', 15)
+        self.seeing_arcsec = self.camera_params.get('seeing_arcsec', 3.5)
+#        self.exp_time = self.camera_params.get('default.exp_time',5)
         
-        self.site = self.config_get('site', "LCO")
+        self.site = self.camera_params.get('site', "LCO")
         self.sid = Siderostat()
         self.geoloc = Site(name = self.site)
 
         self.temperature = 25
         self._changetemperature_task = None
 
-        self.pixsize = self.config_get('pixsize', -999)
-        self.pixscale = self.config_get('pixscale', -999)
+        self.pixsize = self.camera_params.get('pixsize', 0.0)
+        self.flen = self.camera_params.get('flen', 0.0)
+        # pixel scale per arcseconds is focal length *pi/180 /3600
+        # = flen * mm *pi/180 /3600
+        # = flen * um *pi/180 /3.6, so in microns per arcsec...
+        self.pixscale = math.radians(self.flen)/3.6
         self.arcsec_per_pix = self.pixsize / self.pixscale
         self.log(f"arcsec_per_pix {self.arcsec_per_pix}")
+        # degrees per pixel is arcseconds per pixel/3600 = (mu/pix)/(mu/arcsec)/3600
+        self.degperpix =  self.pixsize/self.pixscale/3600.0
 
-        self.gain = self.config_get('gain', 1)
-        self.binning = self.config_get('binning', [1, 1])
-        self._focus_offset = self.config_get('focus_offset', 42)
+        self.gain = self.camera_params.get('gain', 1)
+        self.binning = self.camera_params.get('binning', [1, 1])
+        self._focus_offset = self.camera_params.get('focus_offset', 42)
 
         self.cam_type = "skymakercam"
         self.cam_temp = -1
@@ -229,6 +236,11 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         self.detector_size = self.inst_params.chip_size_pix
         self.image_area = (1, self.detector_size)
+
+        self.detector_size = Size(-1, -1)
+        self.region_bounds=Size(-1, -1)
+        self.image_area=Rect(-1, -1, -1, -1)
+
 
         self.data = False
 
@@ -306,7 +318,6 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         exposure.scraper_store = self.scraper_store.copy()
 
-
         if kmirror_angle := kwargs.get("km_d", None):
             exposure.scraper_store.set("km_d", kmirror_angle)
 
@@ -317,6 +328,8 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         self.notify(CameraEvent.EXPOSURE_READING)
 
+        self.notify(CameraEvent.EXPOSURE_INTEGRATING)
+
         data = await self.create_synthetic_image(exposure, **exposure.scraper_store)
 
         # we convert everything to U16 for basecam compatibility
@@ -326,21 +339,21 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         # https://learn.astropy.org/tutorials/synthetic-images.html
 
-        exposure.wcs = wcs.WCS()
-        exposure.wcs.wcs.cdelt = np.array([1.,1.])
-        exposure.wcs.wcs.crval = [exposure.scraper_store.get("ra_h", 0.0)*15, exposure.scraper_store.get("dec_d", 90.0)]
-        exposure.wcs.wcs.cunit = ["deg", "deg"]
-        exposure.wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        #exposure.wcs = wcs.WCS()
+        #exposure.wcs.wcs.cdelt = np.array([1.,1.])
+        #exposure.wcs.wcs.crval = [exposure.scraper_store.get("ra_h", 0.0)*15, exposure.scraper_store.get("dec_d", 90.0)]
+        #exposure.wcs.wcs.cunit = ["deg", "deg"]
+        #exposure.wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
 
-        # The distance from the long edge of the FLIR camera to the center
-        # of the focus (fiber) is 7.144+4.0 mm according to SDSS-V_0110 figure 6
-        # and 11.14471 according to figure 3-1 of LVMi-0081
-        # For the *w or *e cameras the pixel row 1 (in FITS) is that far
-        # away in the y-coordinate and in the middle of the x-coordinate.
-        # For the *c cameras at the fiber bundle we assume them to be in the beam center.
-        crpix1 = self.width/self.binning[0] / 2
-        crpix2 = 11.14471 * 1000.0 / self.pixsize
-        exposure.wcs.wcs.crpix = [crpix1, crpix2]
+        ## The distance from the long edge of the FLIR camera to the center
+        ## of the focus (fiber) is 7.144+4.0 mm according to SDSS-V_0110 figure 6
+        ## and 11.14471 according to figure 3-1 of LVMi-0081
+        ## For the *w or *e cameras the pixel row 1 (in FITS) is that far
+        ## away in the y-coordinate and in the middle of the x-coordinate.
+        ## For the *c cameras at the fiber bundle we assume them to be in the beam center.
+        #crpix1 = self.width/self.binning[0] / 2
+        #crpix2 = 11.14471 * 1000.0 / self.pixsize
+        #exposure.wcs.wcs.crpix = [crpix1, crpix2]
 
 
     async def _post_process_internal(self, exposure: Exposure, **kwargs) -> Exposure:
@@ -355,7 +368,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         return self.binning
 
     async def _set_binning_internal(self, hbin, vbin):
-        self.binning = (hbin, vbin)
+        self.binning = [hbin, vbin]
 
     async def _get_temperature_internal(self):
         return self.temperature
