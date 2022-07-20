@@ -223,7 +223,6 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.degperpix =  self.pixsize/self.pixscale/3600.0
 
         self.gain = self.camera_params.get('gain', 1)
-        self.binning = self.camera_params.get('binning', [1, 1])
         self._focus_offset = self.camera_params.get('focus_offset', 42)
 
         self.cam_type = "skymakercam"
@@ -231,18 +230,15 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         self.log(f"{self.inst_params.chip_size_pix}")
         
-        self.width = self.inst_params.chip_size_pix[0]
-        self.height = self.inst_params.chip_size_pix[1]
+        self.detector_size = Size(*self.inst_params.chip_size_pix)
+        self.log(f"{self.detector_size}")
 
-        self.detector_size = self.inst_params.chip_size_pix
-        self.image_area = (1, self.detector_size)
+        self.binning = self.camera_params.get('binning', [1, 1])
 
-        self.detector_size = Size(-1, -1)
-        self.region_bounds=Size(-1, -1)
-        self.image_area=Rect(-1, -1, -1, -1)
+        self.region_bounds = Size(self.detector_size.wd / self.binning[0], self.detector_size.ht / self.binning[1])
+        self.image_area = Rect(0, 0, self.region_bounds.wd, self.region_bounds.ht)
 
-
-        self.data = False
+        self.data = None
 
 
     #def tcs_get_position_j2000(self):
@@ -368,6 +364,8 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         return self.binning
 
     async def _set_binning_internal(self, hbin, vbin):
+        self.region_bounds = Size(self.detector_size.wd / hbin, self.detector_size.ht / vbin)
+        self.image_area = Rect(0, 0, self.region_bounds.wd, self.region_bounds.ht)
         self.binning = [hbin, vbin]
 
     async def _get_temperature_internal(self):
@@ -386,13 +384,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         return self.image_area
 
     async def _set_image_area_internal(self, area=None):
-        
         return # not supported
-
-        if area is None:
-            self.image_area = (1, self.width, 1, self.height)
-        else:
-            self.image_area = area
 
     async def _set_gain_internal(self, gain):
         """Internal method to set the gain."""
