@@ -241,11 +241,6 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.data = None
 
 
-    #def tcs_get_position_j2000(self):
-        #status = await self._tcs.status()
-        
-        #return SkyCoord(ra=status["ra_j2000_hours"]*u.hour, dec=status["dec_j2000_degs"]*u.deg), status["field_angle_here_degs"]
-
     async def _connect_internal(self, **connection_params):
         self.logger.debug(f"connecting ...")
         
@@ -322,35 +317,16 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
                 exposure.scraper_store.set("ra_h", ra_h)
                 exposure.scraper_store.set("dec_d", dec_d)
 
-        self.notify(CameraEvent.EXPOSURE_READING)
-
         self.notify(CameraEvent.EXPOSURE_INTEGRATING)
 
         data = await self.create_synthetic_image(exposure, **exposure.scraper_store)
+
+#        self.notify(CameraEvent.EXPOSURE_READING)
 
         # we convert everything to U16 for basecam compatibility
         exposure.data = rebin(data, self.binning).astype(np.uint16)
 #        exposure.obstime = astropy.time.Time("2000-01-01 00:00:00")
         exposure.obstime = astropy.time.Time.now()
-
-        # https://learn.astropy.org/tutorials/synthetic-images.html
-
-        #exposure.wcs = wcs.WCS()
-        #exposure.wcs.wcs.cdelt = np.array([1.,1.])
-        #exposure.wcs.wcs.crval = [exposure.scraper_store.get("ra_h", 0.0)*15, exposure.scraper_store.get("dec_d", 90.0)]
-        #exposure.wcs.wcs.cunit = ["deg", "deg"]
-        #exposure.wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
-
-        ## The distance from the long edge of the FLIR camera to the center
-        ## of the focus (fiber) is 7.144+4.0 mm according to SDSS-V_0110 figure 6
-        ## and 11.14471 according to figure 3-1 of LVMi-0081
-        ## For the *w or *e cameras the pixel row 1 (in FITS) is that far
-        ## away in the y-coordinate and in the middle of the x-coordinate.
-        ## For the *c cameras at the fiber bundle we assume them to be in the beam center.
-        #crpix1 = self.width/self.binning[0] / 2
-        #crpix2 = 11.14471 * 1000.0 / self.pixsize
-        #exposure.wcs.wcs.crpix = [crpix1, crpix2]
-
 
     async def _post_process_internal(self, exposure: Exposure, **kwargs) -> Exposure:
         self.notify(CameraEvent.EXPOSURE_POST_PROCESSING)
