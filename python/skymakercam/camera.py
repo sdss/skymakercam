@@ -106,18 +106,56 @@ class GainMixIn(object, metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    async def setgain(self, gain):
-        """Seta the  gain of the camera."""
+    async def set_gain(self, gain):
+        """Set the gain of the camera."""
 
         return await self._set_gain_internal(gain)
 
-    async def getgain(self):
+    async def get_gain(self):
         """Gets the gain of the camera."""
 
         return await self._get_gain_internal()
 
 
+#class ScraperParamMixIn(object):
+    #"""A mixin that provides manual control over the camera gain."""
 
+    #def __init__(self, *args, camera_params = None, **kwargs):
+        #from sdsstools.logger import get_logger
+        #logger = get_logger("ScraperParamCards")
+##        logger.warning(f"xxxxxxxxxxxxxxxxx {camera_params}")
+        #self.scraper_store = camera_params.get('scraper_store', {})
+
+    #async def set(self, key, value):
+        #"""Seta the  param of the camera."""
+        #pass
+
+    #async def get(self, key):
+        #"""Gets the param of the camera."""
+        #return self.scraper_store.get(key, None).val
+
+
+#def mixedomatic(cls):
+    #""" Mixed-in class decorator. """
+    #classinit = cls.__dict__.get('__init__')  # Possibly None.
+    
+    ## Define an __init__ function for the class.
+    #def __init__(self, *args, **kwargs):
+        ## Call the __init__ functions of all the bases.
+        #for base in cls.__bases__:
+            #if base.__dict__.get('__init__'):
+                #print(base)
+                #base.__init__(self, *args, **kwargs)
+
+        ## Also call any __init__ function that was in the class.
+        #if classinit:
+            #classinit(self, *args, **kwargs)
+
+    ## Make the local function the class's __init__.
+    #setattr(cls, '__init__', __init__)
+    #return cls
+
+#@mixedomatic
 class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn, GainMixIn):
     """A virtual camera that does not require hardware.
 
@@ -133,7 +171,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
             k = key.split('.', maxsplit=1)
             c = config.get(k[0] if not k[0].isnumeric() else int(k[0]))  # keys can be numeric
             return d if c is None else c if len(k) < 2 else g(c, k[1], d) if type(c) is dict else d
-        return g(self.params, key, default)
+        return g(self.config, key, default)
 
 
     def __init__(self, *args, camera_params = None, **kwargs):
@@ -145,37 +183,25 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.logger.debug("construct")
 #        self.logger.debug(f"{camera_params}")
 
-        self.params = camera_params
-        self.actor = self.params.get('actor', None)
-        self.scraper_data = self.params.get('scraper_data', {})
-        
+
+        self.config = camera_params
+#        self.actor = self.params.get('actor', None)
+        self.scraper_store = self.config.get('scraper_store', {})
+
         self.inst_params = params_load(f"skymakercam.params.{self.config_get('instpar', None)}")
         self.inst_params.catalog_path = os.path.expandvars(self.config_get('catalog_path', tempfile.TemporaryDirectory()))
         if not os.path.exists(self.inst_params.catalog_path):
             self.log(f"Creating catalog path: {self.inst_params.catalog_path}", WARNING)
             pathlib.Path(self.inst_params.catalog_path).mkdir(parents=True, exist_ok=True)
 
-#        rmqname = f"proxy-{uuid.uuid4().hex[:8]}"
-#        self.logger.debug(f"{rmqname} {self.config_get('rmq.host', 'localhost')}")
-        
-#        Proxy.setDefaultAmqpc(AMQPClient(name=rmqname, url=os.getenv("RMQ_URL", None)))
-
-#        self._tcs = Proxy(self.config_get('tcs', None))
-        
         self.tcs_coord = SkyCoord(ra=0.0*u.deg, dec=90.0*u.deg)
         self.tcs_pa = 0.0
 
         self.guide_stars = None
         
-        ## we do reuse the AMQPClient
-        #self._focus_stage = Proxy(self.config_get('focus_stage', None))
         self.sky_flux = self.config_get('sky_flux', 15)
         self.seeing_arcsec = self.config_get('seeing_arcsec', 3.5)
 #        self.exp_time = self.config_get('default.exp_time',5)
-        
-        # we do reuse the AMQPClient
-#        self._kmirror = Proxy(self.config_get('kmirror', None))
-#        self.kmirror_angle = 0.
         
         self.site = self.config_get('site', "LCO")
         self.sid = Siderostat()
@@ -187,6 +213,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.pixsize = self.config_get('pixsize', -999)
         self.pixscale = self.config_get('pixscale', -999)
         self.arcsec_per_pix = self.pixsize / self.pixscale
+        self.log(f"arcsec_per_pix {self.arcsec_per_pix}")
 
         self.gain = self.config_get('gain', 1)
         self.binning = self.config_get('binning', [1, 1])
@@ -200,7 +227,8 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.width = self.inst_params.chip_size_pix[0]
         self.height = self.inst_params.chip_size_pix[1]
 
-        self.image_area = (1, self.inst_params.chip_size_pix[0], 1, self.inst_params.chip_size_pix[1])
+        self.detector_size = self.inst_params.chip_size_pix
+        self.image_area = (1, self.detector_size)
 
         self.data = False
 
@@ -252,10 +280,6 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         else:    
             self.guide_stars = find_guide_stars(tcs_coord_current, sky_angle, self.inst_params, remote_catalog=False, cull_cat=False)
 
-
-        #loop = asyncio.get_event_loop()
-        #future = loop.run_in_executor(None, self.create_synthetic_image(exposure, **params))
-        #data = await future
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             None, 
@@ -280,31 +304,20 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
                     new_shape[1], arr.shape[1] // new_shape[1])
             return arr.reshape(shape).sum(-1).sum(1)
 
+        exposure.scraper_store = self.scraper_store.copy()
 
-#        self.logger.debug(f"kwargs {kwargs}")
 
-        image_type = exposure.image_type
-
-        #if image_type in ["bias", "dark"]:
-            #await self.set_shutter(False)
-        #else:
-            #await self.set_shutter(True)
-
-        self.params = {k: v.val for k,v in self.scraper_data.items()}
-        
-        if kmirror_angle := kwargs.get("km_d", 0.0):
-            self.params["km_d"] = kmirror_angle
+        if kmirror_angle := kwargs.get("km_d", None):
+            exposure.scraper_store.set("km_d", kmirror_angle)
 
         if ra_h := kwargs.get("ra_h", None):
             if dec_d := kwargs.get("dec_d", None):
-                self.params["ra_h"] = ra_h
-                self.params["dec_d"] = dec_d
-
-        self.log(f"params {self.params}")
-
-        data = await self.create_synthetic_image(exposure, **self.params)
+                exposure.scraper_store.set("ra_h", ra_h)
+                exposure.scraper_store.set("dec_d", dec_d)
 
         self.notify(CameraEvent.EXPOSURE_READING)
+
+        data = await self.create_synthetic_image(exposure, **exposure.scraper_store)
 
         # we convert everything to U16 for basecam compatibility
         exposure.data = rebin(data, self.binning).astype(np.uint16)
@@ -315,7 +328,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         exposure.wcs = wcs.WCS()
         exposure.wcs.wcs.cdelt = np.array([1.,1.])
-        exposure.wcs.wcs.crval = [self.params.get("ra_h", 0.0)*15, self.params.get("dec_d", 90.0)]
+        exposure.wcs.wcs.crval = [exposure.scraper_store.get("ra_h", 0.0)*15, exposure.scraper_store.get("dec_d", 90.0)]
         exposure.wcs.wcs.cunit = ["deg", "deg"]
         exposure.wcs.wcs.ctype = ["RA---TAN", "DEC--TAN"]
 
@@ -329,9 +342,6 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         crpix2 = 11.14471 * 1000.0 / self.pixsize
         exposure.wcs.wcs.crpix = [crpix1, crpix2]
 
-#        self.arcsec_per_pix
-
-        #await self.set_shutter(False)
 
     async def _post_process_internal(self, exposure: Exposure, **kwargs) -> Exposure:
         self.notify(CameraEvent.EXPOSURE_POST_PROCESSING)
@@ -377,4 +387,5 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
     async def _get_gain_internal(self):
         """Internal method to get the gain."""
+        self.log(f"scraper data {self.scraper_store.data}")
         return self.gain
