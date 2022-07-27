@@ -224,6 +224,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
         self.gain = self.camera_params.get('gain', 1)
         self._focus_offset = self.camera_params.get('focus_offset', 42)
+        self.log(f"focus offset {self._focus_offset}")
 
         self.cam_type = "skymakercam"
         self.cam_temp = -1
@@ -261,7 +262,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
     async def create_synthetic_image(self, exposure, ra_h=0.0, dec_d=90.0, pa_d=0.0, km_d=0.0, foc_um=0.0, **kwargs):
 
         self.log(f"focus um {foc_um}")
-        defocus = math.fabs((foc_um+self._focus_offset)/100)**2
+        defocus = math.fabs(foc_um-self._focus_offset)
         self.log(f"defocus {defocus}")
 
         self.log(f"kmirror angle (deg): {km_d}")
