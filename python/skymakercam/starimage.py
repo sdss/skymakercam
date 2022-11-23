@@ -166,7 +166,7 @@ def find_guide_stars_auto(input_touple, inst, folder = "/guide_star_search_resul
 
 
 def make_synthetic_image(chip_x, chip_y, gmag, inst, exp_time=5, seeing_arcsec=3.5, sky_flux=10, defocus=0.0):
-    
+
     seeing_pixel = seeing_arcsec * inst.image_scale / (inst.chip_size_mm[0] / inst.chip_size_pix[0] * 1000) / 2.36
     
     x_position = chip_x / inst.chip_size_mm[0] * inst.chip_size_pix[0]
@@ -177,7 +177,7 @@ def make_synthetic_image(chip_x, chip_y, gmag, inst, exp_time=5, seeing_arcsec=3
     x_position = x_position[selection_on_chip]
     y_position = y_position[selection_on_chip]
     gmag = gmag[selection_on_chip]
-    
+
     #print("{} of {} stars are on the chip.".format(np.sum(selection_on_chip),len(selection_on_chip)))
     
     #gaia_legend_mag = np.arange(17,4,mag_lim_index)

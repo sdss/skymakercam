@@ -121,43 +121,6 @@ Point = namedtuple('Point', ['x0', 'y0'])
 Size = namedtuple('Size', ['wd', 'ht'])
 Rect = namedtuple('Rect', ['x0', 'y0', 'wd', 'ht'])
 
-#class ScraperParamMixIn(object):
-    #"""A mixin that provides manual control over the camera gain."""
-
-    #def __init__(self, *args, camera_params = None, **kwargs):
-        #from sdsstools.logger import get_logger
-        #logger = get_logger("ScraperParamCards")
-##        logger.warning(f"xxxxxxxxxxxxxxxxx {camera_params}")
-        #self.scraper_store = camera_params.get('scraper_store', {})
-
-    #async def set(self, key, value):
-        #"""Seta the  param of the camera."""
-        #pass
-
-    #async def get(self, key):
-        #"""Gets the param of the camera."""
-        #return self.scraper_store.get(key, None).val
-
-
-#def mixedomatic(cls):
-    #""" Mixed-in class decorator. """
-    #classinit = cls.__dict__.get('__init__')  # Possibly None.
-    
-    ## Define an __init__ function for the class.
-    #def __init__(self, *args, **kwargs):
-        ## Call the __init__ functions of all the bases.
-        #for base in cls.__bases__:
-            #if base.__dict__.get('__init__'):
-                #print(base)
-                #base.__init__(self, *args, **kwargs)
-
-        ## Also call any __init__ function that was in the class.
-        #if classinit:
-            #classinit(self, *args, **kwargs)
-
-    ## Make the local function the class's __init__.
-    #setattr(cls, '__init__', __init__)
-    #return cls
 
 #@mixedomatic
 class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn, GainMixIn):
@@ -169,15 +132,6 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
     """
 
-    #def config_get(self, key, default=None):
-        #""" DOESNT work for keys with dots !!! """
-        #def g(config, key, d=None):
-            #k = key.split('.', maxsplit=1)
-            #c = config.get(k[0] if not k[0].isnumeric() else int(k[0]))  # keys can be numeric
-            #return d if c is None else c if len(k) < 2 else g(c, k[1], d) if type(c) is dict else d
-        #return g(self.config, key, default)
-
-
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -186,8 +140,8 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.logger.sh.formatter = StreamFormatter(fmt='%(asctime)s %(name)s %(levelname)s %(filename)s:%(lineno)d: \033[1m%(message)s\033[21m') 
 
 
-#        self.actor = self.params.get('actor', None)
-        self.scraper_store = self.camera_params.get('scraper_store', {})
+        self.actor = self.camera_params.get('actor', None)
+        self.scraper_store = self.actor.scraper_store
 
         self.inst_params = params_load(f"skymakercam.params.{self.camera_params.get('instpar', None)}")
         self.inst_params.catalog_path = os.path.expandvars(self.camera_params.get('catalog_path', tempfile.TemporaryDirectory()))
@@ -204,9 +158,18 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         self.seeing_arcsec = self.camera_params.get('seeing_arcsec', 3.5)
 #        self.exp_time = self.camera_params.get('default.exp_time',5)
         
-        self.site = self.camera_params.get('site', "LCO")
-        self.sid = Siderostat()
-        self.geoloc = Site(name = self.site)
+        self.site = self.actor.site
+
+        # but south-> north at LCO
+        #if self.site.lat > 40.0 :
+            #azang = 180 # MPIA
+        #else :
+            #azang = 0  # LCO, APO, KHU
+
+        self.sid = self.actor.sid
+
+        self.log(f"site: {self.site}")
+
 
         self.temperature = 25
         self._changetemperature_task = None
@@ -244,10 +207,7 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
 
     async def _connect_internal(self, **connection_params):
         self.logger.debug(f"connecting ...")
-        
-        #await self._tcs.start()
-        #await self._focus_stage.start()
-        #await self._kmirror.start()
+
 
         return True
 
@@ -255,33 +215,31 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         """Close connection to camera.
         """
         self.logger.debug("disconnect")
-        #await self._tcs.client.stop()
-        #await self._focus_stage.client.stop()
-        #await self._kmirror.client.stop()
 
     async def create_synthetic_image(self, exposure, ra_h=0.0, dec_d=90.0, pa_d=0.0, km_d=0.0, foc_um=0.0, **kwargs):
 
         self.log(f"focus um {foc_um}")
-        defocus = math.fabs(foc_um-self._focus_offset)
+        defocus = 1.0 + math.fabs(foc_um-self._focus_offset)**2.8
+        if defocus > 50.0: defocus = 50.0
         self.log(f"defocus {defocus}")
 
-        self.log(f"kmirror angle (deg): {km_d}")
+        self.log(f"kmirror sky angle (deg): {km_d * 2}")
 
         tcs_coord_current = SkyCoord(ra=ra_h*u.hour, dec=dec_d*u.deg)
         self.log(f"SkyCoord: {tcs_coord_current}")
 
-        mathar_angle_d = math.degrees(self.sid.fieldAngle(self.geoloc, Target(tcs_coord_current), None))
+        mathar_angle_d = math.degrees(self.sid.fieldAngle(self.site, Target(tcs_coord_current), None))
         self.log(f"mathar angle (deg): {mathar_angle_d}")
 
-        sky_angle = km_d - mathar_angle_d
-        self.log(f"sky angle (deg): {sky_angle} {pa_d}")
+        sky_angle = km_d * 2 - mathar_angle_d
+        self.log(f"sky angle (deg): {sky_angle:04.4} {pa_d}")
 
         separation = self.tcs_coord.separation(tcs_coord_current)
         self.log(f"separation {separation.arcminute }")
         if separation.arcminute > 18 or not self.guide_stars:
             self.tcs_coord = tcs_coord_current
             self.guide_stars = find_guide_stars(self.tcs_coord, sky_angle, self.inst_params, remote_catalog=True)
-        else:    
+        else:
             self.guide_stars = find_guide_stars(tcs_coord_current, sky_angle, self.inst_params, remote_catalog=False, cull_cat=False)
 
         loop = asyncio.get_event_loop()
