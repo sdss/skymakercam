@@ -216,10 +216,10 @@ class SkymakerCamera(BaseCamera, ExposureTypeMixIn, ImageAreaMixIn, CoolerMixIn,
         """
         self.logger.debug("disconnect")
 
-    async def create_synthetic_image(self, exposure, ra_h=0.0, dec_d=90.0, pa_d=0.0, km_d=0.0, foc_um=0.0, **kwargs):
+    async def create_synthetic_image(self, exposure, ra_h=0.0, dec_d=90.0, pa_d=0.0, km_d=0.0, foc_dt=0.0, **kwargs):
 
-        self.log(f"focus um {foc_um}")
-        defocus = 1.0 + math.fabs(foc_um-self._focus_offset)**2.8
+        self.log(f"focus um {foc_dt}")
+        defocus = 1.0 + math.fabs(foc_dt-self._focus_offset)**2.8
         if defocus > 50.0: defocus = 50.0
         self.log(f"defocus {defocus}")
 
