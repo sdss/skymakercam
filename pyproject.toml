@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sdss-skymakercam"
-version = "0.0.28"
+version = "0.0.29"
 description = "Skymaker camera with sdss-basecam"
 authors = ["Florian Briegel <briegel@mpia.de>"]
 license = "BSD-3-Clause"
@@ -40,7 +40,7 @@ sdss-tree = ">=2.15.2"
 sdss-access = ">=0.2.3"
 sdsstools = ">=0.4.0"
 matplotlib = ">=3.1.1"
-astropy = ">=4.0"
+astropy = ">=5.2"
 astroquery = ">0.4"
 healpy = ">=1.15"
 sep = ">=1.2"
